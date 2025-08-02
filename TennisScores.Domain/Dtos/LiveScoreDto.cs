@@ -1,0 +1,12 @@
+public class LiveScoreDto
+{
+    public Guid MatchId { get; set; }
+    public string Player1Name { get; set; } = string.Empty;
+    public string Player2Name { get; set; } = string.Empty;
+    public int Player1Sets { get; set; }
+    public int Player2Sets { get; set; }
+    public int Player1Games { get; set; }
+    public int Player2Games { get; set; }
+    public string CurrentScore { get; set; } = "0-0"; // Ex: 15-30
+    public string Server { get; set; } = string.Empty; // Player1 or Player2
+}
