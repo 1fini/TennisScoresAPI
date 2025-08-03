@@ -8,5 +8,6 @@ namespace TennisScores.Domain.Repositories
         Task<IEnumerable<Match>> GetMatchesByPlayerIdAsync(Guid playerId);
         Task<IEnumerable<Match>> GetMatchesByTournamentIdAsync(Guid tournamentId);
         Task<Match?> GetMatchWithDetailsAsync(Guid matchId);
+        Task<Match?> GetFullMatchByIdAsync(Guid matchId);
     }
 }

@@ -20,7 +20,7 @@ public class Tournament
     public AgeCategory? AgeCategory { get; set; }
 
     public TournamentType Type { get; set; }
-
+    public MatchFormat MatchFormat { get; set; } = default!;
     public TournamentSubType SubType { get; set; }
     public BallLevel BallLevel { get; set; }
     public CourtSurface Surface { get; set; }

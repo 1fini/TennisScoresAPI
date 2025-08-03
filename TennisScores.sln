@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TennisScores.API", "TennisScores.API\TennisScores.API.csproj", "{CB40968B-A9F8-486B-4452-5BA08F9FB6B9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TennisScores.IntegrationTests", "TennisScores.IntegrationTests\TennisScores.IntegrationTests.csproj", "{8515E077-B424-4925-8EF5-3A1869051455}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TennisScores.Tests", "TennisScores.Tests\TennisScores.Tests.csproj", "{8515E077-B424-4925-8EF5-3A1869051455}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TennisScores.Domain", "TennisScores.Domain\TennisScores.Domain.csproj", "{56885834-E7CE-4728-96C4-C98ACF4C1D21}"
 EndProject

@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using TennisScores.Domain.Entities;
 using TennisScores.Infrastructure.Data;
 
+namespace TennisScores.Tests.Integration.Services;
+
 public class DatabaseFixture : IDisposable
 {
     public TennisDbContext Context { get; }
@@ -33,9 +35,9 @@ public class DatabaseFixture : IDisposable
             Id = Guid.NewGuid(),
             Name = "US Open",
             StartDate = new DateTime(2025, 8, 2),
-            Location = "New York"   
+            Location = "New York"
         });
-        
+
         context.SaveChanges();
     }
 }

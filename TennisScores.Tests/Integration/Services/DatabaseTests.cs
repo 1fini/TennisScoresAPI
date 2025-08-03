@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using Npgsql;
 
-namespace TennisScores.IntegrationTests;
+namespace TennisScores.Tests.Integration.Services;
 public class DatabaseTests
 {
     private const string ConnectionString = "Host=localhost;Port=5432;Database=tennisdb;Username=dan;Password=uginale";

@@ -14,6 +14,7 @@ public class TennisDbContext : DbContext
     public DbSet<Game> Games => Set<Game>();
     public DbSet<Point> Points => Set<Point>();
     public DbSet<Tournament> Tournaments => Set<Tournament>();
+    public DbSet<MatchFormat> MatchFormats => Set<MatchFormat>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -86,5 +87,7 @@ public class TennisDbContext : DbContext
         modelBuilder.Entity<Tournament>()
             .HasIndex(t => new { t.Name, t.StartDate })
             .IsUnique();
+
+        modelBuilder.ApplyConfiguration(new MatchFormatConfiguration());
     }
 }
