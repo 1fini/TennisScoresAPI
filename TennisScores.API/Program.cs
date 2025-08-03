@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TennisScores.API.Services;
+using TennisScores.Domain;
 using TennisScores.Domain.Repositories;
+using TennisScores.Infrastructure;
 using TennisScores.Infrastructure.Data;
 using TennisScores.Infrastructure.Repositories;
 using TennisScoresAPI.Hubs;
@@ -27,6 +29,9 @@ internal class Program
         builder.Services.AddScoped<IPlayerRepository, PlayerRepository>();
         builder.Services.AddScoped<ITournamentRepository, TournamentRepository>();
         builder.Services.AddScoped<IMatchService, MatchService>();
+        builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+        builder.Services.AddScoped<LiveScoreService>();
+
 
 
         var app = builder.Build();
