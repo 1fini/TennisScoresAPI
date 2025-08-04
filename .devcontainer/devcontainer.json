@@ -3,13 +3,14 @@
   "build": {
       "dockerfile": "Dockerfile"
   },
-  "settings": {
-      "terminal.integrated.shell.linux": "/bin/bash"
+  "features": {},
+  "customizations": {
+    "vscode": {
+        "extensions": [
+            "ms-dotnettools.csharp",
+            "ms-vscode.powershell"
+        ]
+    }
   },
-  "extensions": [
-      "ms-dotnettools.csharp",
-      "ms-dotnettools.vscode-dotnet-runtime"
-  ],
-  "postCreateCommand": "dotnet --version",
-  "forwardPorts": [5000, 5001]
+  "remoteUser": "vscode"
 }

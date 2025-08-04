@@ -1,24 +1,15 @@
 # Utiliser une image de base avec .NET 8
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS base
+FROM mcr.microsoft.com/devcontainers/dotnet:0-8.0
 
 # Installer .NET 9
-RUN apt-get update && \
-    apt-get install -y wget && \
-    wget https://dotnetcli.blob.core.windows.net/dotnet/9.0.0/dotnet-sdk-9.0.0-linux-x64.tar.gz && \
-    tar -zxvf dotnet-sdk-9.0.0-linux-x64.tar.gz -C /usr/share/dotnet && \
-    rm dotnet-sdk-9.0.0-linux-x64.tar.gz && \
-    ln -s /usr/share/dotnet/sdk/9.0.0 /usr/share/dotnet/sdk && \
-    ln -s /usr/share/dotnet/shared/Microsoft.AspNetCore.App/9.0.0 /usr/share/dotnet/shared/Microsoft.AspNetCore.App && \
-    ln -s /usr/share/dotnet/shared/Microsoft.NETCore.App/9.0.0 /usr/share/dotnet/shared/Microsoft.NETCore.App
+RUN wget https://builds.dotnet.microsoft.com/dotnet/Sdk/9.0.100-preview.7.24407.12/dotnet-sdk-9.0.100-preview.7.24407.12-linux-x64.tar.gz -O dotnet9.tar.gz \
+&& mkdir -p /usr/share/dotnet9 \
+&& tar -zxf dotnet9.tar.gz -C /usr/share/dotnet9 \
+&& rm dotnet9.tar.gz
 
 # Vérifier l'installation de .NET 9
 RUN dotnet --version
 
-# Copier le projet dans le conteneur
-COPY . /workspace
-
-# Définir le répertoire de travail
-WORKDIR /workspace
-
-# Exécuter la commande de build
-CMD ["dotnet", "build"]
+# Add SDK .NET9 to PATH
+ENV DOTNET_ROOT=/usr/share/dotnet9
+ENV PATH="${DOTNET_ROOT}:${PATH}"
