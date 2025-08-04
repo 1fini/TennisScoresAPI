@@ -38,6 +38,10 @@ public class TennisDbContext : DbContext
             .HasForeignKey(m => m.WinnerId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        modelBuilder.Entity<Match>()
+            .Property(m => m.IsCompleted)
+            .HasDefaultValue(false);        
+
         // Set ↔ Match
         modelBuilder.Entity<TennisSet>()
             .HasOne(s => s.Match)
@@ -51,6 +55,10 @@ public class TennisDbContext : DbContext
             .HasForeignKey(s => s.WinnerId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        modelBuilder.Entity<TennisSet>()
+            .Property(s => s.IsCompleted)
+            .HasDefaultValue(false);
+
         // Game ↔ Set
         modelBuilder.Entity<Game>()
             .HasOne(g => g.Set)
@@ -63,6 +71,10 @@ public class TennisDbContext : DbContext
             .WithMany()
             .HasForeignKey(g => g.WinnerId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Game>()
+            .Property(g => g.IsCompleted)
+            .HasDefaultValue(false);
 
         // Point ↔ Game
         modelBuilder.Entity<Point>()
@@ -87,6 +99,16 @@ public class TennisDbContext : DbContext
         modelBuilder.Entity<Tournament>()
             .HasIndex(t => new { t.Name, t.StartDate })
             .IsUnique();
+
+        modelBuilder.Entity<Tournament>()
+        .Property(t => t.MatchFormatId)
+        .IsRequired();
+
+        modelBuilder.Entity<Tournament>()
+        .HasOne(t => t.MatchFormat)
+        .WithMany()
+        .HasForeignKey(t => t.MatchFormatId)
+        .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.ApplyConfiguration(new MatchFormatConfiguration());
     }

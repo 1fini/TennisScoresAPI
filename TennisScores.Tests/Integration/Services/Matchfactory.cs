@@ -113,4 +113,22 @@ public static class MatchFactory
 
         return match;
     }
+
+    public static Match CreateNewMatchNotYetStarted()
+    {
+        var p1 = new Player { Id = Guid.NewGuid(), FirstName = "Carlos", LastName = "Alcaraz" };
+        var p2 = new Player { Id = Guid.NewGuid(), FirstName = "Jannik", LastName = "Sinner" };
+
+        var match = new Match
+        {
+            Id = Guid.NewGuid(),
+            Player1Id = p1.Id,
+            Player2Id = p2.Id,
+            Player1 = p1,
+            Player2 = p2,
+            BestOfSets = 3
+        };
+
+        return match;
+    }
 }

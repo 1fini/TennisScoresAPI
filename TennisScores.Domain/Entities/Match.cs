@@ -19,6 +19,7 @@ public class Match
     public string? Surface { get; set; } // Terre battue, dur, etc.
     public Guid? WinnerId { get; set; }
     public Player? Winner { get; set; }
+    public bool IsCompleted { get; set; }
     public ICollection<TennisSet> Sets { get; set; } = new List<TennisSet>();
     public Tournament? Tournament { get; set; } // Le tournoi auquel le match appartient
     public Guid? TournamentId { get; set; } // Foreign key for the tournament

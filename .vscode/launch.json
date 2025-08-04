@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Utiliser IntelliSense pour déterminer quels attributs existent pour le débogage C#
+            // Utiliser le pointage pour la description des attributs existants
+            // Pour plus d’informations, consultez https://github.com/dotnet/vscode-csharp/blob/main/debugger-launchjson.md.
+            "name": ".NET Core Launch (web)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            // Si vous avez modifié la version cible de .Net Framework, veillez à mettre à jour le chemin d’accès du programme.
+            "program": "${workspaceFolder}/TennisScores.API/bin/Debug/net9.0/TennisScores.API.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/TennisScores.API",
+            "stopAtEntry": false,
+            // Activez le lancement d’un navigateur web au démarrage de ASP.NET Core. Pour plus d’informations : https://aka.ms/VSCode-CS-LaunchJson-WebBrowser
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            }
+        },
+        {
+            "name": ".NET Core Attach",
+            "type": "coreclr",
+            "request": "attach"
+        }
+    ]
+}

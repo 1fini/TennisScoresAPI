@@ -38,8 +38,10 @@ namespace TennisScores.Infrastructure.Repositories
                 .Include(m => m.Player2)
                 .Include(m => m.Winner)
                 .Include(m => m.Tournament)
+                    .ThenInclude(t => t!.MatchFormat)
                 .Include(m => m.Sets)
-                .ThenInclude(s => s.Games)
+                    .ThenInclude(s => s.Games)
+                        .ThenInclude(g => g.Points)
                 .FirstOrDefaultAsync(m => m.Id == matchId);
         }
 
@@ -48,6 +50,9 @@ namespace TennisScores.Infrastructure.Repositories
             return await _context.Matches
                 .Include(m => m.Player1)
                 .Include(m => m.Player2)
+                .Include(m => m.Winner)
+                .Include(m => m.Tournament)
+                    . ThenInclude(t => t!.MatchFormat)
                 .Include(m => m.Sets)
                     .ThenInclude(s => s.Games)
                         .ThenInclude(g => g.Points)

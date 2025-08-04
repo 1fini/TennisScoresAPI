@@ -21,6 +21,7 @@ public class Tournament
 
     public TournamentType Type { get; set; }
     public MatchFormat MatchFormat { get; set; } = default!;
+    public int MatchFormatId { get; set; }
     public TournamentSubType SubType { get; set; }
     public BallLevel BallLevel { get; set; }
     public CourtSurface Surface { get; set; }
