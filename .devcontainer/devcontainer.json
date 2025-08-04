@@ -1,0 +1,15 @@
+{
+  "name": "My .NET 9 Dev Container",
+  "build": {
+      "dockerfile": "Dockerfile"
+  },
+  "settings": {
+      "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": [
+      "ms-dotnettools.csharp",
+      "ms-dotnettools.vscode-dotnet-runtime"
+  ],
+  "postCreateCommand": "dotnet --version",
+  "forwardPorts": [5000, 5001]
+}
