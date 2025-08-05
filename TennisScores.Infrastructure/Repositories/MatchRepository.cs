@@ -52,7 +52,7 @@ namespace TennisScores.Infrastructure.Repositories
                 .Include(m => m.Player2)
                 .Include(m => m.Winner)
                 .Include(m => m.Tournament)
-                    . ThenInclude(t => t!.MatchFormat)
+                    .ThenInclude(t => t!.MatchFormat)
                 .Include(m => m.Sets)
                     .ThenInclude(s => s.Games)
                         .ThenInclude(g => g.Points)

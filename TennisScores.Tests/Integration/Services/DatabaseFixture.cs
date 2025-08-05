@@ -12,6 +12,7 @@ public class DatabaseFixture : IDisposable
     {
         var options = new DbContextOptionsBuilder<TennisDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Debug)
             .Options;
 
         Context = new TennisDbContext(options);
@@ -32,6 +33,7 @@ public class DatabaseFixture : IDisposable
         {
             Id = 7,
             Name = "Format 7",
+            GamesPerSet = 6,
             SetsToWin = 2,
             TieBreakEnabled = true,
             DecidingPointEnabled = false,
@@ -40,7 +42,6 @@ public class DatabaseFixture : IDisposable
 
         context.Tournaments.Add(new Tournament
         {
-            Id = Guid.NewGuid(),
             Name = "US Open",
             StartDate = new DateTime(2025, 8, 2),
             Location = "New York",

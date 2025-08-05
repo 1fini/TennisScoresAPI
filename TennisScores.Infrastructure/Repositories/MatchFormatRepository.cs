@@ -18,5 +18,6 @@ public class MatchFormatRepository : IMatchFormatRepository
         => _context.MatchFormats.ToListAsync();
 
     public Task<MatchFormat?> GetByIdAsync(int id)
-        => _context.MatchFormats.FirstOrDefaultAsync(f => f.Id == id);
+        => _context.MatchFormats
+        .FirstOrDefaultAsync(f => f.Id == id);
 }

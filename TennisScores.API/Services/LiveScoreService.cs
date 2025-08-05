@@ -1,4 +1,6 @@
+using System.Data;
 using System.Security.Principal;
+using Microsoft.EntityFrameworkCore;
 using TennisScores.Domain;
 using TennisScores.Domain.Entities;
 using TennisScores.Domain.Repositories;
@@ -6,116 +8,152 @@ using TennisScores.Infrastructure.Repositories;
 
 namespace TennisScores.API.Services;
 
-public class LiveScoreService(IMatchRepository matchRepository, IMatchFormatRepository matchFormatRepository, IUnitOfWork unitOfWork)
+public class LiveScoreService(
+    IMatchRepository matchRepository,
+    IMatchFormatRepository matchFormatRepository,
+    IUnitOfWork unitOfWork, 
+    ISetRepository setRepository)
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IMatchRepository _matchRepository = matchRepository;
     private readonly IMatchFormatRepository _matchFormatRepository = matchFormatRepository;
+    private readonly ISetRepository _setRepository = setRepository;
 
     public async Task AddPointToMatchAsync(Guid matchId, Guid winnerId)
     {
-        var match = await _matchRepository.GetFullMatchByIdAsync(matchId) ??
-            throw new ArgumentException("Match does not exist");
-
-        var format = match.Tournament?.MatchFormat ?? throw new ArgumentException("Match Format not found");
-
-        // Get the current set or create a new one
-        var currentSet = match.Sets
-            .Where(s => !s.IsCompleted)
-            .OrderBy(s => s.SetNumber)
-            .LastOrDefault();
-
-        if (currentSet == null)
+        try
         {
-            currentSet = new TennisSet
+            var match = await _matchRepository.GetFullMatchByIdAsync(matchId) ??
+                throw new ArgumentException("Match does not exist");
+
+            var format = match.Tournament?.MatchFormat ?? throw new ArgumentException("Match Format not found");
+
+            // Get the current set or create a new one
+            var currentSet = match.Sets
+                .Where(s => !s.IsCompleted)
+                .OrderBy(s => s.SetNumber)
+                .LastOrDefault();
+
+            if (currentSet == null)
             {
-                Id = Guid.NewGuid(),
-                MatchId = match.Id,
-                Match = match,
-                SetNumber = match.Sets.Count + 1,
-                Games = []
-            };
-            if (match.Sets.Count >= match.Tournament.MatchFormat.GamesPerSet)
-                throw new InvalidOperationException("Sets count is greater thant MatchFormat defines");
+                currentSet = new TennisSet
+                {
+                    MatchId = match.Id,
+                    Match = match,
+                    SetNumber = match.Sets.Count + 1,
+                    Games = []
+                };
+                if (match.Sets.Count >= match.Tournament.MatchFormat.GamesPerSet)
+                    throw new InvalidOperationException("Sets count is greater thant MatchFormat defines");
 
-            match.Sets.Add(currentSet);
-        }
+                match.Sets.Add(currentSet);
+                await _setRepository.AddAsync(currentSet);
+            }
 
-        // Get the current Game or create one
-        var currentGame = currentSet.Games
-            .OrderByDescending(g => g.GameNumber)
-            .FirstOrDefault(g => !g.IsCompleted);
+            // Get the current Game or create one
+            var currentGame = currentSet.Games
+                .OrderByDescending(g => g.GameNumber)
+                .FirstOrDefault(g => !g.IsCompleted);
 
-        if (currentGame == null)
-        {
-            currentGame = new Game
+            if (currentGame == null)
             {
-                Id = Guid.NewGuid(),
-                SetId = currentSet.Id,
-                Set = currentSet,
-                GameNumber = currentSet.Games.Count + 1,
-                Points = []
-            };
+                currentGame = new Game
+                {
+                    SetId = currentSet.Id,
+                    Set = currentSet,
+                    GameNumber = currentSet.Games.Count + 1,
+                    Points = []
+                };
 
-            currentSet.Games.Add(currentGame);
-        }
+                currentSet.Games.Add(currentGame);
+                await _unitOfWork.SaveChangesAsync();
+            }
 
-        // Add Point in Current Game
-        currentGame.Points.Add(new Point
-        {
-            Id = Guid.NewGuid(),
-            WinnerId = winnerId,
-            Winner = match.Player1Id == winnerId ? match.Player1 : match.Player2,
-            Timestamp = DateTime.UtcNow
-        });
-
-        // Is game completed?
-        if (CheckGameIsOver(currentGame, match))
-        {
-            currentGame.IsCompleted = true;
-            currentGame.WinnerId = winnerId;
-
-            var gamesWon = currentSet.Games
-            .Where(g => g.IsCompleted && g.WinnerId == winnerId)
-            .Count();
-
-            // Is Set Completed?
-            if (CheckSetIsOver(currentSet, match, format))
+            // Add Point in Current Game
+            currentGame.Points.Add(new Point
             {
-                currentSet.IsCompleted = true;
-                currentSet.WinnerId = winnerId;
+                WinnerId = winnerId,
+                Winner = match.Player1Id == winnerId ? match.Player1 : match.Player2,
+                Timestamp = DateTime.UtcNow
+            });
+            await _unitOfWork.SaveChangesAsync();
 
-                var setsWon = match.Sets
-                .Where(s => s.IsCompleted && s.WinnerId == winnerId)
+            // Is game completed?
+            if (CheckGameIsOver(currentGame, match))
+            {
+                currentGame.IsCompleted = true;
+                currentGame.WinnerId = winnerId;
+
+                var gamesWon = currentSet.Games
+                .Where(g => g.IsCompleted && g.WinnerId == winnerId)
                 .Count();
 
-                // Is Match Over?
-                if (CheckMatchIsOver(match, format))
+                // Is Set Completed?
+                if (CheckSetIsOver(currentSet, match, format))
                 {
-                    match.IsCompleted = true;
-                    match.WinnerId = winnerId;
+                    currentSet.IsCompleted = true;
+                    currentSet.WinnerId = winnerId;
+
+                    var setsWon = match.Sets
+                    .Where(s => s.IsCompleted && s.WinnerId == winnerId)
+                    .Count();
+
+                    // Is Match Over?
+                    if (CheckMatchIsOver(match, format))
+                    {
+                        match.IsCompleted = true;
+                        match.WinnerId = winnerId;
+                    }
+                    else
+                    {
+                        // New Set
+                        var nextSet = new TennisSet
+                        {
+                            MatchId = match.Id,
+                            Match = match,
+                            SetNumber = match.Sets.Count + 1,
+                            Games = []
+                        };
+                        match.Sets.Add(nextSet);
+                    }
                 }
                 else
                 {
-                    // New Set
-                    var nextSet = new TennisSet
-                    {
-                        Id = Guid.NewGuid(),
-                        MatchId = match.Id,
-                        Match = match,
-                        SetNumber = match.Sets.Count + 1,
-                        Games = []
-                    };
-                    match.Sets.Add(nextSet);
+                    // New Game in same Set
+
                 }
             }
-            else
+            await _unitOfWork.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            foreach (var entry in ex.Entries)
             {
-                // New Game in same Set
-                
+                if (entry.Entity is TennisSet)
+                {
+                    var proposedValues = entry.CurrentValues;
+                    var databaseValues = await entry.GetDatabaseValuesAsync();
+
+                    foreach (var property in proposedValues.Properties)
+                    {
+                        var proposedValue = proposedValues[property];
+                        //var databaseValue = databaseValues[property];
+
+                        // TODO: decide which value should be written to database
+                        // proposedValues[property] = <value to be saved>;
+                    }
+
+                    // Refresh original values to bypass next concurrency check
+                    //entry.OriginalValues.SetValues(databaseValues);
+                }
+                else
+                {
+                    throw new NotSupportedException(
+                        "Don't know how to handle concurrency conflicts for "
+                        + entry.Metadata.Name);
+                }
             }
         }
-        await _unitOfWork.SaveChangesAsync();
     }
 
     private static int GetGamesWonByPlayer(TennisSet set, Guid playerId)

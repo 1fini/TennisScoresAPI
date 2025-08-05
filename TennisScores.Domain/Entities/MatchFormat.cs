@@ -14,6 +14,6 @@ namespace TennisScores.Domain.Entities
         public string Application { get; set; } = string.Empty;
 
         // Navigation
-        public ICollection<Tournament> Tournaments { get; set; } = new List<Tournament>();
+        //public ICollection<Tournament> Tournaments { get; set; } = [];
     }
 }

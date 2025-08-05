@@ -16,6 +16,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
     private readonly LiveScoreService _liveScoreService;
     private readonly MatchRepository _matchRepository;
     private readonly MatchFormatRepository _matchFormatRepository;
+    private readonly SetRepository _setRepository;
     private readonly UnitOfWork _unitOfWork;
 
     public LiveScoreServiceIntegrationTests(DatabaseFixture fixture)
@@ -23,14 +24,20 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         _context = fixture.Context;
         _matchRepository = new MatchRepository(_context);
         _matchFormatRepository = new MatchFormatRepository(_context);
+        _setRepository = new SetRepository(_context);
         _unitOfWork = new UnitOfWork(_context);
 
-        _liveScoreService = new LiveScoreService((IMatchRepository)_matchRepository, (IMatchFormatRepository)_matchFormatRepository, (IUnitOfWork)_unitOfWork);
+        _liveScoreService = new LiveScoreService(
+            (IMatchRepository)_matchRepository,
+            (IMatchFormatRepository)_matchFormatRepository,
+            (IUnitOfWork)_unitOfWork,
+            (ISetRepository)_setRepository);
     }
     // 🧪 Test d'intégration : simulation d’un match avec super tie-break
     [Fact]
     public async Task AddPointToMatchAsync_Player1WinsGame_GameIsCompleted()
     {
+        Console.WriteLine("===============Test Started==========");
         // Arrange
         var carlos = _context.Players.SingleOrDefault(p => p.FirstName == "Carlos")!.Id;
         var jannik = _context.Players.SingleOrDefault(p => p.FirstName == "Jannik")!.Id;
@@ -44,7 +51,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         };
 
         _context.Matches.Add(match);
-        await _context.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         //Act
         for (int i = 0; i < 4; i++)

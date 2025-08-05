@@ -101,10 +101,6 @@ public class TennisDbContext : DbContext
             .IsUnique();
 
         modelBuilder.Entity<Tournament>()
-        .Property(t => t.MatchFormatId)
-        .IsRequired();
-
-        modelBuilder.Entity<Tournament>()
         .HasOne(t => t.MatchFormat)
         .WithMany()
         .HasForeignKey(t => t.MatchFormatId)
