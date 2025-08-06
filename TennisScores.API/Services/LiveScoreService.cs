@@ -1,9 +1,11 @@
 using System.Data;
-
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using TennisScores.Domain;
+using TennisScores.Domain.Dtos;
 using TennisScores.Domain.Entities;
 using TennisScores.Domain.Repositories;
+using TennisScoresAPI.Hubs;
 
 namespace TennisScores.API.Services;
 
@@ -13,7 +15,8 @@ public class LiveScoreService(
     IUnitOfWork unitOfWork,
     ISetRepository setRepository,
     IGameRepository gameRepository,
-    IPointRepository pointRepository) : ILiveScoreService
+    IPointRepository pointRepository,
+    IHubContext<ScoreHub> hubContext) : ILiveScoreService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IMatchRepository _matchRepository = matchRepository;
@@ -21,6 +24,7 @@ public class LiveScoreService(
     private readonly ISetRepository _setRepository = setRepository;
     private readonly IGameRepository _gameRepository = gameRepository;
     private readonly IPointRepository _pointRepository = pointRepository;
+    private readonly IHubContext<ScoreHub> _hubContext = hubContext;
 
     public async Task AddPointToMatchAsync(Guid matchId, Guid winnerId)
     {
@@ -89,9 +93,6 @@ public class LiveScoreService(
                 currentGame.IsCompleted = true;
                 currentGame.WinnerId = winnerId;
                 _gameRepository.Update(currentGame);
-                /*var gamesWon = currentSet.Games
-                .Where(g => g.IsCompleted && g.WinnerId == winnerId)
-                .Count();*/
 
                 // Is Set Completed?
                 if (CheckSetIsOver(currentSet, match, format))
@@ -136,6 +137,9 @@ public class LiveScoreService(
                 }
             }
             await _unitOfWork.SaveChangesAsync();
+
+            //Broadcasting to clients
+            await _hubContext.Clients.Group(match.Id.ToString()).SendAsync("ReceivePoint", match.MapToScoreDto());
         }
         catch (DbUpdateConcurrencyException ex)
         {

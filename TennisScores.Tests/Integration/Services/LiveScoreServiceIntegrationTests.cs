@@ -1,8 +1,11 @@
 using TennisScores.API.Services;
-using TennisScores.Domain.Entities;
 using TennisScores.Infrastructure.Repositories;
 using TennisScores.Infrastructure;
 using TennisScores.Infrastructure.Data;
+using Microsoft.AspNetCore.SignalR;
+using Moq;
+using TennisScoresAPI.Hubs;
+using Match = TennisScores.Domain.Entities.Match;
 
 namespace TennisScores.Tests.Integration.Services;
 
@@ -27,13 +30,22 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         _pointRepository = new PointRepository(_context);
         _unitOfWork = new UnitOfWork(_context);
 
+        var mockClients = new Mock<IHubClients>();
+        var mockGroupManager = new Mock<IClientProxy>();
+        var mockHubContext = new Mock<IHubContext<ScoreHub>>();
+
+        mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(mockGroupManager.Object);
+        mockHubContext.Setup(c => c.Clients).Returns(mockClients.Object);
+        
+
         _liveScoreService = new LiveScoreService(
             _matchRepository,
             _matchFormatRepository,
             _unitOfWork,
             _setRepository,
             _gameRepository,
-            _pointRepository);
+            _pointRepository,
+            mockHubContext.Object);
     }
 
     #region Format 2
