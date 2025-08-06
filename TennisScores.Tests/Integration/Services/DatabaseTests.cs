@@ -13,7 +13,7 @@ public class DatabaseTests
         await connection.OpenAsync();
 
         // Récupérer la liste des tables du schéma public
-        DataTable tables = connection.GetSchema("Tables", new string[] { null, "public" });
+        DataTable tables = connection.GetSchema("Tables", [null, "public"]);
 
         // Liste des tables attendues
         string[] expectedTables = { "Players", "Matches", "Sets", "Games", "Points" };

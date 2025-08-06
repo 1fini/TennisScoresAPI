@@ -38,7 +38,7 @@ public class MatchFormatConfiguration : IEntityTypeConfiguration<MatchFormat>
             {
                 Id = 3,
                 Name = "Format 3",
-                SetsToWin = 3,
+                SetsToWin = 2,
                 GamesPerSet = 4,
                 TieBreakEnabled = true,
                 DecidingPointEnabled = true,
@@ -54,7 +54,7 @@ public class MatchFormatConfiguration : IEntityTypeConfiguration<MatchFormat>
                 TieBreakEnabled = true,
                 DecidingPointEnabled = true,
                 SuperTieBreakForFinalSet = true,
-                Application = "Format double"
+                Application = "Double Format"
             },
             new MatchFormat
             {
@@ -73,7 +73,7 @@ public class MatchFormatConfiguration : IEntityTypeConfiguration<MatchFormat>
                 Name = "Format 6",
                 SetsToWin = 2,
                 GamesPerSet = 4,
-                TieBreakEnabled = true,
+                TieBreakEnabled = true, //tiebreak at 3/3
                 DecidingPointEnabled = true,
                 SuperTieBreakForFinalSet = true,
                 Application = "TMC 11–15 ans"
@@ -84,7 +84,7 @@ public class MatchFormatConfiguration : IEntityTypeConfiguration<MatchFormat>
                 Name = "Format 7",
                 SetsToWin = 2,
                 GamesPerSet = 5,
-                TieBreakEnabled = true,
+                TieBreakEnabled = true, //tiebreak at 4/4
                 DecidingPointEnabled = true,
                 SuperTieBreakForFinalSet = true,
                 Application = "TMC 11–15 ans"

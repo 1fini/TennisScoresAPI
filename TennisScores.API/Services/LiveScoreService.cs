@@ -88,7 +88,7 @@ public class LiveScoreService(
             {
                 currentGame.IsCompleted = true;
                 currentGame.WinnerId = winnerId;
-
+                _gameRepository.Update(currentGame);
                 /*var gamesWon = currentSet.Games
                 .Where(g => g.IsCompleted && g.WinnerId == winnerId)
                 .Count();*/
@@ -187,17 +187,6 @@ public class LiveScoreService(
         return false;
     }
 
-    private static bool IsTiebreakGame(Game game, Match match, MatchFormat format)
-    {
-        var currentSet = match.Sets.FirstOrDefault(s => s.Id == game.SetId);
-        if (currentSet == null || !format.TieBreakEnabled) return false;
-
-        var gamesP1 = currentSet.Games.Count(g => g.WinnerId == match.Player1Id);
-        var gamesP2 = currentSet.Games.Count(g => g.WinnerId == match.Player2Id);
-
-        return gamesP1 == format.GamesPerSet && gamesP2 == format.GamesPerSet;
-    }
-
     private static bool CheckSetIsOver(TennisSet set, Match match, MatchFormat matchFormat)
     {
         var games = set.Games.Where(g => g.IsCompleted).ToList();
@@ -214,7 +203,7 @@ public class LiveScoreService(
         }
 
         // 🎯 Cas 2 : tie-break activé à égalité (ex: 6–6)
-        if (matchFormat.TieBreakEnabled && player1Games == requiredGames && player2Games == requiredGames)
+        if (matchFormat.TieBreakEnabled && player1Games >= requiredGames && player2Games >= requiredGames)
         {
             var tieBreakGame = set.Games.LastOrDefault(g => g.IsTiebreak);
             return tieBreakGame is not null && tieBreakGame.IsCompleted;

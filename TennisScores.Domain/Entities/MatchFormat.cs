@@ -12,8 +12,5 @@ namespace TennisScores.Domain.Entities
         public int SuperTieBreakPoints { get; set; } = 10;// 10 points by default
         public int TieBreakPoints { get; set; } = 7; // 7 points by default
         public string Application { get; set; } = string.Empty;
-
-        // Navigation
-        //public ICollection<Tournament> Tournaments { get; set; } = [];
     }
 }
