@@ -1,23 +1,26 @@
 using System.Data;
-using System.Security.Principal;
+
 using Microsoft.EntityFrameworkCore;
 using TennisScores.Domain;
 using TennisScores.Domain.Entities;
 using TennisScores.Domain.Repositories;
-using TennisScores.Infrastructure.Repositories;
 
 namespace TennisScores.API.Services;
 
 public class LiveScoreService(
     IMatchRepository matchRepository,
     IMatchFormatRepository matchFormatRepository,
-    IUnitOfWork unitOfWork, 
-    ISetRepository setRepository)
+    IUnitOfWork unitOfWork,
+    ISetRepository setRepository,
+    IGameRepository gameRepository,
+    IPointRepository pointRepository) : ILiveScoreService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IMatchRepository _matchRepository = matchRepository;
     private readonly IMatchFormatRepository _matchFormatRepository = matchFormatRepository;
     private readonly ISetRepository _setRepository = setRepository;
+    private readonly IGameRepository _gameRepository = gameRepository;
+    private readonly IPointRepository _pointRepository = pointRepository;
 
     public async Task AddPointToMatchAsync(Guid matchId, Guid winnerId)
     {
@@ -66,17 +69,19 @@ public class LiveScoreService(
                 };
 
                 currentSet.Games.Add(currentGame);
-                await _unitOfWork.SaveChangesAsync();
+                await _gameRepository.AddAsync(currentGame);
             }
 
             // Add Point in Current Game
-            currentGame.Points.Add(new Point
+            var point = new Point
             {
                 WinnerId = winnerId,
                 Winner = match.Player1Id == winnerId ? match.Player1 : match.Player2,
                 Timestamp = DateTime.UtcNow
-            });
-            await _unitOfWork.SaveChangesAsync();
+            };
+            currentGame.Points.Add(point);
+            await _pointRepository.AddAsync(point);
+
 
             // Is game completed?
             if (CheckGameIsOver(currentGame, match))
@@ -84,9 +89,9 @@ public class LiveScoreService(
                 currentGame.IsCompleted = true;
                 currentGame.WinnerId = winnerId;
 
-                var gamesWon = currentSet.Games
+                /*var gamesWon = currentSet.Games
                 .Where(g => g.IsCompleted && g.WinnerId == winnerId)
-                .Count();
+                .Count();*/
 
                 // Is Set Completed?
                 if (CheckSetIsOver(currentSet, match, format))
@@ -94,12 +99,9 @@ public class LiveScoreService(
                     currentSet.IsCompleted = true;
                     currentSet.WinnerId = winnerId;
 
-                    var setsWon = match.Sets
-                    .Where(s => s.IsCompleted && s.WinnerId == winnerId)
-                    .Count();
-
+                    _gameRepository.Update(currentGame);
                     // Is Match Over?
-                    if (CheckMatchIsOver(match, format))
+                    if (CheckMatchIsOver(match))
                     {
                         match.IsCompleted = true;
                         match.WinnerId = winnerId;
@@ -115,44 +117,29 @@ public class LiveScoreService(
                             Games = []
                         };
                         match.Sets.Add(nextSet);
+                        await _setRepository.AddAsync(nextSet);
                     }
                 }
                 else
                 {
                     // New Game in same Set
+                    var newGame = new Game
+                    {
+                        SetId = currentSet.Id,
+                        Set = currentSet,
+                        GameNumber = currentSet.Games.Count + 1,
+                        IsTiebreak = IsTiebreakNeeded(currentSet) || IsSuperTieBreak(match, currentSet)
+                    };
 
+                    currentSet.Games.Add(newGame);
+                    await _gameRepository.AddAsync(newGame);
                 }
             }
             await _unitOfWork.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException ex)
         {
-            foreach (var entry in ex.Entries)
-            {
-                if (entry.Entity is TennisSet)
-                {
-                    var proposedValues = entry.CurrentValues;
-                    var databaseValues = await entry.GetDatabaseValuesAsync();
-
-                    foreach (var property in proposedValues.Properties)
-                    {
-                        var proposedValue = proposedValues[property];
-                        //var databaseValue = databaseValues[property];
-
-                        // TODO: decide which value should be written to database
-                        // proposedValues[property] = <value to be saved>;
-                    }
-
-                    // Refresh original values to bypass next concurrency check
-                    //entry.OriginalValues.SetValues(databaseValues);
-                }
-                else
-                {
-                    throw new NotSupportedException(
-                        "Don't know how to handle concurrency conflicts for "
-                        + entry.Metadata.Name);
-                }
-            }
+            // Retry the operation after resolving the concurrency conflict
         }
     }
 
@@ -213,29 +200,37 @@ public class LiveScoreService(
 
     private static bool CheckSetIsOver(TennisSet set, Match match, MatchFormat matchFormat)
     {
-        var player1Games = set.Games.Count(g => g.WinnerId == match.Player1Id);
-        var Player2Games = set.Games.Count(g => g.WinnerId == match.Player2Id);
+        var games = set.Games.Where(g => g.IsCompleted).ToList();
+        var player1Games = games.Count(g => g.WinnerId == match.Player1Id);
+        var player2Games = games.Count(g => g.WinnerId == match.Player2Id);
 
         var requiredGames = matchFormat.GamesPerSet;
-        var tiebreakThreshold = matchFormat.TieBreakEnabled ? requiredGames : requiredGames + 1;
+        var gameDifference = Math.Abs(player1Games - player2Games);
 
-        var gameDifference = Math.Abs(player1Games - Player2Games);
-
-        // Direct victory (e.g. 6-4, 4-2, etc.)
-        if ((player1Games >= requiredGames || Player2Games >= requiredGames) && gameDifference >= 2)
+        // 🎯 Cas 1 : victoire normale (ex: 6–4 ou 5–3)
+        if ((player1Games >= requiredGames || player2Games >= requiredGames) && gameDifference >= 2)
+        {
             return true;
+        }
 
-        //Tie-Break
-        if (matchFormat.TieBreakEnabled && player1Games == requiredGames && Player2Games == requiredGames)
-            return true;
+        // 🎯 Cas 2 : tie-break activé à égalité (ex: 6–6)
+        if (matchFormat.TieBreakEnabled && player1Games == requiredGames && player2Games == requiredGames)
+        {
+            var tieBreakGame = set.Games.LastOrDefault(g => g.IsTiebreak);
+            return tieBreakGame is not null && tieBreakGame.IsCompleted;
+        }
 
-        //Super TieBreak
+        // 🎯 Cas 3 : super tie-break dans le set décisif (dernier set du match)
         if (matchFormat.SuperTieBreakForFinalSet && set.SetNumber == match.BestOfSets)
         {
             var lastGame = set.Games.LastOrDefault();
-            if (lastGame != null && IsSuperTieBreak(lastGame, matchFormat))
-                return lastGame!.IsCompleted;
+            if (lastGame is not null && IsSuperTieBreak(lastGame, matchFormat))
+            {
+                return lastGame.IsCompleted;
+            }
         }
+
+        // 🎯 Cas par défaut : le set continue
         return false;
     }
 
@@ -244,12 +239,63 @@ public class LiveScoreService(
         return format.SuperTieBreakForFinalSet && game.IsTiebreak;
     }
 
-    private static bool CheckMatchIsOver(Match match, MatchFormat matchFormat)
+    private static bool CheckMatchIsOver(Match match)
     {
-        var setsToWin = matchFormat.SetsToWin;
-        var setsWonByPlayer1 = GetSetsWonByPlayer(match, match.Player1Id);
-        var setsWonByPlayer2 = GetSetsWonByPlayer(match, match.Player2Id);
+        var player1SetWins = match.Sets.Count(s => s.IsCompleted && s.WinnerId == match.Player1Id);
+        var player2SetWins = match.Sets.Count(s => s.IsCompleted && s.WinnerId == match.Player2Id);
 
-        return setsWonByPlayer1 == setsToWin || setsWonByPlayer2 == setsToWin;
+        var setsNeededToWin = (match.BestOfSets / 2) + 1;
+
+        if (player1SetWins >= setsNeededToWin)
+        {
+            match.WinnerId = match.Player1Id;
+            match.IsCompleted = true;
+            return true;
+        }
+
+        if (player2SetWins >= setsNeededToWin)
+        {
+            match.WinnerId = match.Player2Id;
+            match.IsCompleted = true;
+            return true;
+        }
+
+        return false;
     }
+
+
+    private static bool IsTiebreakNeeded(TennisSet set)
+    {
+        var match = set.Match;
+        var format = match.Tournament!.MatchFormat;
+
+        if (!format.TieBreakEnabled)
+            return false;
+
+        var completedGames = set.Games.Where(g => g.IsCompleted).ToList();
+        var player1Games = completedGames.Count(g => g.WinnerId == match.Player1Id);
+        var player2Games = completedGames.Count(g => g.WinnerId == match.Player2Id);
+
+        return player1Games == format.GamesPerSet && player2Games == format.GamesPerSet;
+    }
+
+
+    private static bool IsSuperTieBreak(Match match, TennisSet set)
+    {
+        var matchFormat = match.Tournament!.MatchFormat;
+
+        if (!matchFormat.SuperTieBreakForFinalSet)
+            return false;
+
+        // Est-ce le dernier set du match ?
+        var isFinalSet = set.SetNumber == match.BestOfSets;
+
+        // Est-ce qu’un jeu est en cours ET déclaré comme tie-break ?
+        var lastGame = set.Games.LastOrDefault();
+        var isTieBreakGame = lastGame != null && lastGame.IsTiebreak;
+
+        return isFinalSet && isTieBreakGame;
+    }
+
+
 }

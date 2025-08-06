@@ -5,19 +5,17 @@ using TennisScores.Infrastructure.Data;
 
 namespace TennisScores.Infrastructure.Repositories;
 
-public class TournamentRepository : Repository<Tournament>, ITournamentRepository
+public class TournamentRepository(TennisDbContext context) : Repository<Tournament>(context), ITournamentRepository
 {
-    private readonly TennisDbContext _context;
-
-    public TournamentRepository(TennisDbContext context) : base(context)
-    {
-        _context = context;
-    }
-
     public async Task<Tournament?> GetByNameAndStartDateAsync(string name, DateTime startDate)
     {
         return await _context.Tournaments
             .FirstOrDefaultAsync(t => t.Name == name && t.StartDate == startDate);
+    }
+
+    public Task<IEnumerable<Tournament>> GetUpcomingAsync()
+    {
+        throw new NotImplementedException();
     }
 }
 

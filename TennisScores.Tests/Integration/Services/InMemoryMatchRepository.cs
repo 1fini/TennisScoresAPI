@@ -25,4 +25,5 @@ public class InMemoryMatchRepository : IMatchRepository
     public Task SaveChangesAsync() => throw new NotImplementedException();
     public void Remove(Match entity) => throw new NotImplementedException();   
     public IQueryable<Match> Query() => throw new NotImplementedException();
+    public void Update(Match entity) => throw new NotImplementedException();
 }
