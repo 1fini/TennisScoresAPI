@@ -5,15 +5,8 @@ using TennisScores.Infrastructure.Data;
 
 namespace TennisScores.Infrastructure.Repositories
 {
-    public class MatchRepository : Repository<Match>, IMatchRepository
+    public class MatchRepository(TennisDbContext context) : Repository<Match>(context), IMatchRepository
     {
-        private readonly TennisDbContext _context;
-
-        public MatchRepository(TennisDbContext context) : base(context)
-        {
-            _context = context;
-        }
-
         public async Task<IEnumerable<Match>> GetMatchesByPlayerIdAsync(Guid playerId)
         {
             return await _context.Matches

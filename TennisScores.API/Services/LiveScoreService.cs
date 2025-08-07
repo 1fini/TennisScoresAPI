@@ -141,9 +141,10 @@ public class LiveScoreService(
             //Broadcasting to clients
             await _hubContext.Clients.Group(match.Id.ToString()).SendAsync("ReceivePoint", match.MapToScoreDto());
         }
-        catch (DbUpdateConcurrencyException ex)
+        catch (Exception ex)
         {
             // Retry the operation after resolving the concurrency conflict
+            throw new InvalidOperationException("An error occurred while adding a point to the match.", ex);    
         }
     }
 
