@@ -1,9 +1,16 @@
+using System.Drawing;
+using TennisScores.Domain.Enums;
+
 namespace TennisScores.API.Services;
+
+/// <summary>
+/// Interface for live score services.
+/// </summary>
 public interface ILiveScoreService
 {
     //Task<LiveScoreDto?> GetLiveScoreAsync(Guid matchId);
     //Task<LiveScoreDto?> PointWonAsync(Guid matchId, Guid playerId);
-    Task AddPointToMatchAsync(Guid matchId, Guid winnerId);
+    Task AddPointToMatchAsync(Guid matchId, Guid winnerId, PointType pointType);
     /*Task<LiveScoreDto?> StartMatchAsync(Guid matchId, Guid player1Id, Guid player2Id);
     Task<LiveScoreDto?> StartSetAsync(Guid matchId, Guid player1Id, Guid player2Id);
     Task<LiveScoreDto?> StartGameAsync(Guid matchId, Guid player1Id, Guid player2Id);

@@ -3,9 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using TennisScores.API.Services;
+using TennisScores.Domain;
 using TennisScores.Domain.Dtos;
 using TennisScores.Domain.Entities;
 using TennisScores.Domain.Repositories;
+using TennisScores.Infrastructure;
 using TennisScores.Infrastructure.Data;
 using TennisScores.Infrastructure.Repositories;
 using Xunit;
@@ -25,8 +27,14 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         IPlayerRepository playerRepository = new PlayerRepository(_context);
         ITournamentRepository tournamentRepository = new TournamentRepository(_context);
         ILogger<MatchService> logger = NullLogger<MatchService>.Instance;
+        IUnitOfWork unitOfWork = new UnitOfWork(_context);
 
-        _matchService = new MatchService(matchRepository, playerRepository, tournamentRepository, logger);
+        _matchService = new MatchService(
+            matchRepository,
+            playerRepository,
+            tournamentRepository,
+            logger,
+            unitOfWork);
     }
     private TennisDbContext CreateInMemoryDbContext()
     {
@@ -114,7 +122,12 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         await context.SaveChangesAsync();
 
         var matchRepo = new MatchRepository(context);
-        var matchService = new MatchService(matchRepo, null!, null!, null!); // autres deps null pour ce test
+        var matchService = new MatchService(
+            matchRepo,
+            null!,
+            null!,
+            null!,
+            null!); // autres deps null pour ce test
 
         // Act
         var result = await matchService.GetMatchAsync(match.Id);

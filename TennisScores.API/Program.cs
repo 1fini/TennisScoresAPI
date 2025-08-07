@@ -26,9 +26,18 @@ internal class Program
                 options.UseNpgsql("Host=localhost;Port=5432;Database=tennisdb;Username=dan;Password=uginale"));
         builder.Services.AddScoped<IMatchRepository, MatchRepository>();
         builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+        builder.Services.AddScoped<IMatchFormatRepository, MatchFormatRepository>();
         builder.Services.AddScoped<IPlayerRepository, PlayerRepository>();
+        builder.Services.AddScoped<ISetRepository, SetRepository>();
+        builder.Services.AddScoped<IGameRepository, GameRepository>();
+        builder.Services.AddScoped<IPointRepository, PointRepository>();
         builder.Services.AddScoped<ITournamentRepository, TournamentRepository>();
+
         builder.Services.AddScoped<IMatchService, MatchService>();
+        builder.Services.AddScoped<IMatchFormatService, MatchFormatService>();
+        builder.Services.AddScoped<IPlayerService, PlayerService>();
+        builder.Services.AddScoped<ITournamentService, TournamentService>();
+        builder.Services.AddScoped<ILiveScoreService, LiveScoreService>();
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
         builder.Services.AddScoped<LiveScoreService>();
 

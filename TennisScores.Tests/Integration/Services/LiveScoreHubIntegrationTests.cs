@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using TennisScores.API.Services;
 using TennisScores.Domain.Entities;
+using TennisScores.Domain.Enums;
 using TennisScores.Infrastructure.Data;
 
 namespace TennisScores.Tests.Integration.Services;
@@ -60,7 +61,7 @@ public class LiveScoreHubIntegrationTests : IClassFixture<CustomWebApplicationFa
         var liveScoreService = scope.ServiceProvider.GetRequiredService<ILiveScoreService>();
 
         // Appel de la méthode qui déclenche l'événement SignalR
-        await liveScoreService.AddPointToMatchAsync(match.Id, player1.Id);
+        await liveScoreService.AddPointToMatchAsync(match.Id, player1.Id, PointType.Unknown);
 
         // Attente événement SignalR
         var completed = await Task.WhenAny(tcs.Task, Task.Delay(3000));

@@ -2,6 +2,8 @@ using TennisScores.Domain.Entities;
 using TennisScores.Domain.Dtos;
 using TennisScores.Domain.Repositories;
 using TennisScoresAPI.Dtos;
+using System.Linq;
+using TennisScores.Domain;
 
 namespace TennisScores.API.Services;
 
@@ -11,17 +13,20 @@ public class MatchService : IMatchService
     private readonly IPlayerRepository _playerRepository;
     private readonly ITournamentRepository _tournamentRepository;
     private readonly ILogger<MatchService> _logger;
+    private readonly IUnitOfWork _unitOfWork;
 
     public MatchService(
         IMatchRepository matchRepository,
         IPlayerRepository playerRepository,
         ITournamentRepository tournamentRepository,
-        ILogger<MatchService> logger)
+        ILogger<MatchService> logger,
+        IUnitOfWork unitOfWork)
     {
         _matchRepository = matchRepository;
         _playerRepository = playerRepository;
         _tournamentRepository = tournamentRepository;
         _logger = logger;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<MatchDto> CreateMatchAsync(CreateMatchRequest request)
@@ -45,7 +50,6 @@ public class MatchService : IMatchService
         // Création du match
         var match = new Match
         {
-            Id = Guid.NewGuid(),
             Player1Id = player1.Id,
             Player2Id = player2.Id,
             BestOfSets = request.BestOfSets,
@@ -54,7 +58,10 @@ public class MatchService : IMatchService
         };
 
         await _matchRepository.AddAsync(match);
+        _logger.LogInformation($"Match created: {match.Id} between {player1.FirstName} {player1.LastName} and {player2.FirstName} {player2.LastName}");
 
+        await _unitOfWork.SaveChangesAsync();
+        
         return new MatchDto
         {
             Id = match.Id,
@@ -99,4 +106,23 @@ public class MatchService : IMatchService
         };
     }
 
+    public async Task<List<MatchDto>> GetAllAsync()
+    {
+        var matches = await _matchRepository.GetAllAsync();
+
+        return matches.Select(m => new MatchDto
+        {
+            Id = m.Id,
+            Player1FirstName = m.Player1?.FirstName ?? "",
+            Player1LastName = m.Player1?.LastName ?? "",
+            Player2FirstName = m.Player2?.FirstName ?? "",
+            Player2LastName = m.Player2?.LastName ?? "",
+            BestOfSets = m.BestOfSets,
+            StartTime = m.StartTime,
+            EndTime = m.EndTime,
+            Surface = m.Surface,
+            WinnerFirstName = m.Winner?.FirstName,
+            WinnerLastName = m.Winner?.LastName
+        }).ToList();
+    }
 }

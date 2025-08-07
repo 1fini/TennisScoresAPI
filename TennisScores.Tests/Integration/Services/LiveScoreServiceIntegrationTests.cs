@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.SignalR;
 using Moq;
 using TennisScoresAPI.Hubs;
 using Match = TennisScores.Domain.Entities.Match;
+using System.Drawing;
+using TennisScores.Domain.Enums;
 
 namespace TennisScores.Tests.Integration.Services;
 
@@ -72,7 +74,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         //Act
         for (int i = 0; i < 4; i++)
         {
-            await _liveScoreService.AddPointToMatchAsync(match.Id, carlos);
+            await _liveScoreService.AddPointToMatchAsync(match.Id, carlos, Domain.Enums.PointType.Winner);
         }
 
         //Assert
@@ -119,19 +121,19 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         for (int i = 0; i < 6; i++) // 40-40
         {
             var scorer = i % 2 == 0 ? carlos : jannik;
-            await _liveScoreService.AddPointToMatchAsync(match.Id, scorer);
+            await _liveScoreService.AddPointToMatchAsync(match.Id, scorer, Domain.Enums.PointType.Winner);
         }
 
         // Advantage Carlos
-        await _liveScoreService.AddPointToMatchAsync(match.Id, carlos);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, carlos, Domain.Enums.PointType.UnforcedError);
 
         // Deuce
-        await _liveScoreService.AddPointToMatchAsync(match.Id, jannik);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, jannik, Domain.Enums.PointType.ForcedError);
 
         // Advantage Carlos
-        await _liveScoreService.AddPointToMatchAsync(match.Id, carlos);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, carlos, Domain.Enums.PointType.Ace);
         // Game Carlos
-        await _liveScoreService.AddPointToMatchAsync(match.Id, carlos);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, carlos, Domain.Enums.PointType.ForcedError);
 
         //Assert
         var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
@@ -179,14 +181,14 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         for (int i = 0; i < 6; i++)
         {
             for (int p = 0; p < 4; p++)
-                await _liveScoreService.AddPointToMatchAsync(match.Id, player1Id); // 6 games Carlos
+                await _liveScoreService.AddPointToMatchAsync(match.Id, player1Id, Domain.Enums.PointType.Unknown); // 6 games Carlos
 
             for (int p = 0; p < 4; p++)
-                await _liveScoreService.AddPointToMatchAsync(match.Id, player2Id); // 6 games Jannik
+                await _liveScoreService.AddPointToMatchAsync(match.Id, player2Id, Domain.Enums.PointType.Unknown); // 6 games Jannik
         }
 
         // One point in tie-break for player 1
-        await _liveScoreService.AddPointToMatchAsync(match.Id, player1Id);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1Id, Domain.Enums.PointType.Winner);
 
         // Assert
         var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
@@ -254,12 +256,12 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         for (int i = 0; i < 20; i++) // 10–10
         {
             var scorer = i % 2 == 0 ? player1 : player2;
-            await _liveScoreService.AddPointToMatchAsync(match.Id, scorer);
+            await _liveScoreService.AddPointToMatchAsync(match.Id, scorer, PointType.Unknown);
         }
 
         // Carlos marque les 2 derniers points : 12–10
-        await _liveScoreService.AddPointToMatchAsync(match.Id, player1);
-        await _liveScoreService.AddPointToMatchAsync(match.Id, player1);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Unknown);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, pointType:PointType.Unknown);
 
         // Assert
         var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
@@ -336,12 +338,12 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         for (int i = 0; i < 20; i++) // 10–10
         {
             var scorer = i % 2 == 0 ? player1 : player2;
-            await _liveScoreService.AddPointToMatchAsync(match.Id, scorer);
+            await _liveScoreService.AddPointToMatchAsync(match.Id, scorer, PointType.Unknown);
         }
 
         // Jannik marque les 2 derniers points : 12–10
-        await _liveScoreService.AddPointToMatchAsync(match.Id, player2);
-        await _liveScoreService.AddPointToMatchAsync(match.Id, player2);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.Unknown);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.Unknown);
 
         //3rd Set
         // --- Set 2 : 7–6 ---
@@ -354,7 +356,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         // --- Tie-break 7–0 Carlos ---
         for (int i = 0; i < 7; i++)
         {
-            await _liveScoreService.AddPointToMatchAsync(match.Id, player1);
+            await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Unknown);
         }
 
         // Assert
@@ -401,7 +403,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
     {
         for (int i = 0; i < 4; i++)
         {
-            await _liveScoreService.AddPointToMatchAsync(matchId, playerId);
+            await _liveScoreService.AddPointToMatchAsync(matchId, playerId, PointType.Unknown);
         }
     }
 

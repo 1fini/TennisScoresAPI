@@ -1,9 +1,9 @@
 using System.Data;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using TennisScores.Domain;
 using TennisScores.Domain.Dtos;
 using TennisScores.Domain.Entities;
+using TennisScores.Domain.Enums;
 using TennisScores.Domain.Repositories;
 using TennisScoresAPI.Hubs;
 
@@ -26,7 +26,10 @@ public class LiveScoreService(
     private readonly IPointRepository _pointRepository = pointRepository;
     private readonly IHubContext<ScoreHub> _hubContext = hubContext;
 
-    public async Task AddPointToMatchAsync(Guid matchId, Guid winnerId)
+    public async Task AddPointToMatchAsync(
+        Guid matchId,
+        Guid winnerId,
+        PointType pointType)
     {
         try
         {
@@ -81,6 +84,7 @@ public class LiveScoreService(
             {
                 WinnerId = winnerId,
                 Winner = match.Player1Id == winnerId ? match.Player1 : match.Player2,
+                PointType = pointType,
                 Timestamp = DateTime.UtcNow
             };
             currentGame.Points.Add(point);
