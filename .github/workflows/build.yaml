@@ -42,16 +42,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Login to DockerHub1
-      uses: docker/login-action@v1
-      with:
-        username: DOCKERHUB_USERNAME
-        password: DOCKERHUB_PASSWORD
-
     - name: Login to DockerHub2
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
+        username: ${{ secrets.DOCKERHUB_USER }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
     - name: Setup .NET 9 SDK
