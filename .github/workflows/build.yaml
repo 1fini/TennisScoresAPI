@@ -16,14 +16,8 @@ env:
   DB_NAME: ${{ secrets.DB_NAME }}
   DB_PORT: ${{ secrets.DB_PORT }}
   DB_HOST: ${{ secrets.DB_HOST }}
-
-name: Debug Env Variables
-  run: |
-    echo "DB_USER: $DB_USER"
-    echo "DB_PASSWORD: $DB_PASSWORD"
-    echo "DB_NAME: $DB_NAME"
-    echo "DB_PORT: $DB_PORT"
-    echo "DB_HOST: $DB_HOST"
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
 jobs:
   build-test-push:
@@ -45,6 +39,15 @@ jobs:
           --health-retries 5
 
     steps:
+    - name: Debug Env Variables
+      run: |
+        echo "DB_USER: $DB_USER"
+        echo "DB_PASSWORD: $DB_PASSWORD"
+        echo "DB_NAME: $DB_NAME"
+        echo "DB_PORT: $DB_PORT"
+        echo "DB_HOST: $DB_HOST"
+        echo "DOCKERHUB_USERNAME: $DOCKERHUB_USERNAME"
+        echo "DOCKERHUB_TOKEN: $DOCKERHUB_TOKEN"
     - name: Checkout code
       uses: actions/checkout@v3
 
