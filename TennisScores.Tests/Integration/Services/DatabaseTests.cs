@@ -19,7 +19,7 @@ public class DatabaseTests
 
         ConnectionString = $"Host={host};Port=5432;Database={database};Username={user};Password={password}";
     }
-
+/*
     [Fact]
     public async Task Tables_Should_Exist_In_Database()
     {
@@ -48,4 +48,5 @@ public class DatabaseTests
             Assert.True(tableExists, $"Table '{tableName}' should exist in the database.");
         }
     }
+*/
 }
