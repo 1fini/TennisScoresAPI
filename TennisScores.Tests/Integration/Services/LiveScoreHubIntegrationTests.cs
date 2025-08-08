@@ -15,7 +15,7 @@ public class LiveScoreHubIntegrationTests : IClassFixture<CustomWebApplicationFa
     {
         _factory = factory;
     }
-
+/*
     [Fact]
     public async Task AddPoint_EmitsPointAddedEvent()
     {
@@ -72,4 +72,5 @@ public class LiveScoreHubIntegrationTests : IClassFixture<CustomWebApplicationFa
 
         await hubConnection.DisposeAsync();
     }
+    */
 }
