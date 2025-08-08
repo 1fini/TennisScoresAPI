@@ -28,8 +28,8 @@ jobs:
           - 5432:5432
         env:
           POSTGRES_USER: DB_USER
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.DB_NAME }}
+          POSTGRES_PASSWORD: DB_PASSWORD
+          POSTGRES_DB: DB_NAME
         options: >-
           --health-cmd "pg_isready -U DB_USER -d DB_NAME"
           --health-interval 10s
