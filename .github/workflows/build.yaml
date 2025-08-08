@@ -9,6 +9,11 @@ on:
 env:
   # Docker image name (depending on dockerhub conf)
   DOCKER_IMAGE_NAME: 1fini/tennisscoreapi
+  DB_USER: ${{ secrets.DB_USER }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  DB_NAME: ${{ secrets.DB_NAME }}
+  DB_PORT: ${{ secrets.DB_PORT }}
+  DB_HOST: ${{ secrets.DB_HOST }}
 
 jobs:
   build-test-push:
@@ -20,7 +25,7 @@ jobs:
         ports:
           - 5432:5432
         env:
-          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_USER: DB_USER
           POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
           POSTGRES_DB: ${{ secrets.DB_NAME }}
         options: >-
