@@ -1,0 +1,80 @@
+name: Build, Test and Publish Docker Image
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request: [main]
+
+env:
+  # Nom de l'image Docker (change selon ton repo Docker Hub)
+  DOCKER_IMAGE_NAME: 1fini/tennisscoreapi
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
+        options: >-
+          --health-cmd "pg_isready -U ${{ secrets.DB_USER }} -d ${{ secrets.DB_NAME }}"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup .NET 9 SDK
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Install PostgreSQL client (for health check)
+      run: sudo apt-get install -y postgresql-client
+
+    - name: Wait for Postgres to be ready
+      run: |
+        for i in {1..10}; do
+          pg_isready -h localhost -p ${{ secrets.DB_PORT }} -U ${{ secrets.DB_USER }} -d ${{ secrets.DB_NAME }} && break
+          echo "Waiting for Postgres to be ready..."
+          sleep 5
+        done
+      env:
+        PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Run tests
+      env:
+        #ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=${{ secrets.DB_NAME }};Username=${{ secrets.DB_USER }};Password=${{ secrets.DB_PASSWORD }}"
+        DB_PORT: ${{ secrets.DB_PORT }}
+        DB_NAME: ${{ secrets.DB_NAME }}
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        DB_HOST: ${{ secrets.DB_HOST }}
+      run: dotnet test --no-build --verbosity normal
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build Docker image
+      run: docker build -t $DOCKER_IMAGE_NAME:latest .
+
+    - name: Push Docker image
+      run: docker push $DOCKER_IMAGE_NAME:latest

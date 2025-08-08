@@ -20,7 +20,12 @@
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
             },
             "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "DB_HOST": "localhost",
+                "DB_PORT": "5432",
+                "DB_NAME": "tennisdb",
+                "DB_USER": "dan",
+                "DB_PASSWORD": "uginale"
             },
             "sourceFileMap": {
                 "/Views": "${workspaceFolder}/Views"
