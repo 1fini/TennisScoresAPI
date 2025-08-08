@@ -4,7 +4,17 @@ using Npgsql;
 namespace TennisScores.Tests.Integration.Services;
 public class DatabaseTests
 {
-    private const string ConnectionString = "Host=localhost;Port=5432;Database=tennisdb;Username=dan;Password=uginale";
+    private readonly string ConnectionString;
+
+    public DatabaseTests()
+    {
+        var user = Environment.GetEnvironmentVariable("DB_USER");
+        var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
+        var database = Environment.GetEnvironmentVariable("DB_NAME");
+        var host = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
+
+        ConnectionString = $"Host={host};Port=5432;Database={database};Username={user};Password={password}";
+    }
 
     [Fact]
     public async Task Tables_Should_Exist_In_Database()
