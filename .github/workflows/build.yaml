@@ -72,7 +72,7 @@ jobs:
         DB_USER: DB_USER
         DB_PASSWORD: DB_PASSWORD
         DB_HOST: DB_HOST
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --verbosity normal
 
     - name: Log in to Docker Hub
       uses: docker/login-action@v2
