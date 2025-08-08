@@ -17,6 +17,13 @@ env:
   DB_PORT: ${{ secrets.DB_PORT }}
   DB_HOST: ${{ secrets.DB_HOST }}
 
+run:
+  echo "DB_USER: $DB_USER"
+  echo "DB_PASSWORD: $DB_PASSWORD"
+  echo "DB_NAME: $DB_NAME"
+  echo "DB_PORT: $DB_PORT"
+  echo "DB_HOST: $DB_HOST"
+
 jobs:
   build-test-push:
     runs-on: ubuntu-latest
