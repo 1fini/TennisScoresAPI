@@ -7,7 +7,7 @@ on:
   pull_request: [main]
 
 env:
-  # Nom de l'image Docker (change selon ton repo Docker Hub)
+  # Docker image name (depending on dockerhub conf)
   DOCKER_IMAGE_NAME: 1fini/tennisscoreapi
 
 jobs:
