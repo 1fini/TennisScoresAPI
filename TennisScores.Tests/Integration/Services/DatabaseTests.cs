@@ -12,6 +12,10 @@ public class DatabaseTests
         var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
         var database = Environment.GetEnvironmentVariable("DB_NAME");
         var host = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
+        Console.WriteLine($"Using DB_USER: {user}");
+        Console.WriteLine($"Using DB_PASSWORD: {password}");
+        Console.WriteLine($"Using DB_NAME: {database}");
+        Console.WriteLine($"Using DB_HOST: {host}");
 
         ConnectionString = $"Host={host};Port=5432;Database={database};Username={user};Password={password}";
     }
@@ -21,6 +25,8 @@ public class DatabaseTests
     {
         await using var connection = new NpgsqlConnection(ConnectionString);
         await connection.OpenAsync();
+
+        Console.WriteLine("Connected to the database successfully.");
 
         // Récupérer la liste des tables du schéma public
         DataTable tables = connection.GetSchema("Tables", [null, "public"]);
