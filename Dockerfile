@@ -7,6 +7,7 @@ COPY *.sln .
 COPY TennisScores.API/*.csproj ./TennisScores.API/
 COPY TennisScores.Infrastructure/*.csproj ./TennisScores.Infrastructure/
 COPY TennisScores.Domain/*.csproj ./TennisScores.Domain/
+COPY TennisScores.Tests/*.csproj ./TennisScores.Tests/
 RUN dotnet restore
 
 # Copy remaining files and build
