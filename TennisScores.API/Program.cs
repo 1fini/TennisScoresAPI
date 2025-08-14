@@ -5,6 +5,7 @@ using TennisScores.Domain.Repositories;
 using TennisScores.Infrastructure;
 using TennisScores.Infrastructure.Data;
 using TennisScores.Infrastructure.Repositories;
+using TennisScoresAPI;
 using TennisScoresAPI.Hubs;
 
 
@@ -26,6 +27,13 @@ internal class Program
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        /*builder.Services.AddSwaggerGen(c =>
+        {
+            c.EnableAnnotations(); // Pas obligatoire ici mais utile si tu veux des descriptions
+            c.OperationFilter<CustomOperationIdFilter>();
+        });*/
+
+
         builder.Services.AddSignalR();
         builder.Services.AddCors(options =>
         {

@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace TennisScores.Domain.Enums;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum TournamentType
 {
     Open,

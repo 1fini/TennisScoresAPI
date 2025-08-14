@@ -1,8 +1,6 @@
 using TennisScores.Domain.Entities;
 using TennisScores.Domain.Dtos;
 using TennisScores.Domain.Repositories;
-using TennisScoresAPI.Dtos;
-using System.Linq;
 using TennisScores.Domain;
 
 namespace TennisScores.API.Services;

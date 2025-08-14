@@ -46,13 +46,13 @@ public class TournamentService : ITournamentService
         return tournament.Id;
     }
 
-    public async Task<Tournament?> GetByIdAsync(Guid id)
+    public async Task<TournamentDto?> GetByIdAsync(Guid id)
     {
-        return await _tournamentRepository.GetByIdAsync(id);
+        return (await _tournamentRepository.GetByIdAsync(id))?.ToDto();
     }
 
-    public async Task<IEnumerable<Tournament>> GetAllAsync()
+    public async Task<IEnumerable<TournamentDto>> GetAllAsync()
     {
-        return await _tournamentRepository.GetAllAsync();
+        return (await _tournamentRepository.GetAllAsync()).Select(t => t.ToDto());
     }
 }

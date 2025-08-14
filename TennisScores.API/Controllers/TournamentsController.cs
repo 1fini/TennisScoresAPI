@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using TennisScores.API.Services;
 using TennisScores.Domain.Dtos;
+using TennisScores.Domain.Entities;
 
 namespace TennisScores.API.Controllers;
 
@@ -23,6 +25,8 @@ public class TournamentsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(TournamentDto))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var tournament = await _tournamentService.GetByIdAsync(id);
@@ -31,9 +35,10 @@ public class TournamentsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<TournamentDto>))]
+    public async Task<IEnumerable<TournamentDto>> GetAll()
     {
         var tournaments = await _tournamentService.GetAllAsync();
-        return Ok(tournaments);
+        return tournaments;
     }
 }

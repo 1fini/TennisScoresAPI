@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TennisScores.Domain.Enums;
 
 /// <summary>
@@ -37,6 +39,7 @@ namespace TennisScores.Domain.Enums;
 /// Top 20 Dames
 /// Top 30 Messieurs
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum FftRanking
 {
     NC,        // Non classé, 4e série

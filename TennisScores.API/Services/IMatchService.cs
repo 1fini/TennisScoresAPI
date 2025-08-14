@@ -1,5 +1,4 @@
 using TennisScores.Domain.Dtos;
-using TennisScoresAPI.Dtos;
 
 namespace TennisScores.API.Services;
 
