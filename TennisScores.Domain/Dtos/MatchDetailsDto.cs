@@ -19,17 +19,13 @@ namespace TennisScores.Domain.Dtos
         public string? TournamentName { get; set; }
         public DateTime? TournamentStartDate { get; set; }
 
-        // Score & état du match
         public int BestOfSets { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public string? Surface { get; set; }
-
-        // Vainqueur (facultatif)
         public string? WinnerFirstName { get; set; }
         public string? WinnerLastName { get; set; }
-
-        // Détail des sets joués
-        public List<SetScoreDto> Sets { get; set; } = new();
+        public List<SetScoreDto> Sets { get; set; } = [];
+        public string? CurrentScore {get; set; }
     }
 }

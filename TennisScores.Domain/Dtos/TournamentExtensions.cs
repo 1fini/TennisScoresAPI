@@ -43,7 +43,6 @@ public static class TournamentExtensions
                 BestOfSets = m.BestOfSets,
                 StartTime = m.StartTime,
                 EndTime = m.EndTime,
-                Surface = m.Surface,
                 WinnerFirstName = m.Winner?.FirstName,
                 WinnerLastName = m.Winner?.LastName
             }).ToList() ?? []

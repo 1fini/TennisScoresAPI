@@ -10,7 +10,7 @@ public class MatchDto
     public int BestOfSets { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
-    public string? Surface { get; set; }
     public string? WinnerFirstName { get; set; }
     public string? WinnerLastName { get; set; }
+    public string? CurrentScore { get; set; }
 }
