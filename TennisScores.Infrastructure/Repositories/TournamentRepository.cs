@@ -38,6 +38,10 @@ public class TournamentRepository(TennisDbContext context) : Repository<Tourname
                 .ThenInclude(m => m.Player2)
             .Include(t => t.Matches)
                 .ThenInclude(m => m.Winner)
+            .Include(t => t.Matches)
+                .ThenInclude(m => m.Sets)
+                    .ThenInclude(s => s.Games)
+                        .ThenInclude(s => s.Points)
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 

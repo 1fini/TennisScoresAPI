@@ -12,7 +12,8 @@ public class Match
     public Guid Player2Id { get; set; }
     public Player Player1 { get; set; }
     public Player Player2 { get; set; }
-    public int BestOfSets { get; set; } = 3; // 3 = match en 2 ou 3 sets gagnants
+    public Guid ServingPlayerId { get; set; }
+    public int BestOfSets { get; set; } = 3;
     public DateTime? ScheduledStartTime { get; set; }
     public DateTime StartTime { get; set; } = DateTime.UtcNow;
     public DateTime? EndTime { get; set; }

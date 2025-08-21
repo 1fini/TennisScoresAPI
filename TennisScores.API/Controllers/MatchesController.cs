@@ -35,7 +35,7 @@ namespace TennisScoresAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(MatchDto))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(MatchDetailsDto))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetMatch(Guid id)
         {

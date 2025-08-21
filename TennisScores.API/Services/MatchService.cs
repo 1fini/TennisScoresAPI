@@ -5,34 +5,51 @@ using TennisScores.Domain;
 
 namespace TennisScores.API.Services;
 
-public class MatchService : IMatchService
+public class MatchService(
+    IMatchRepository matchRepository,
+    IPlayerRepository playerRepository,
+    ITournamentRepository tournamentRepository,
+    ILogger<MatchService> logger,
+    IUnitOfWork unitOfWork) : IMatchService
 {
-    private readonly IMatchRepository _matchRepository;
-    private readonly IPlayerRepository _playerRepository;
-    private readonly ITournamentRepository _tournamentRepository;
-    private readonly ILogger<MatchService> _logger;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public MatchService(
-        IMatchRepository matchRepository,
-        IPlayerRepository playerRepository,
-        ITournamentRepository tournamentRepository,
-        ILogger<MatchService> logger,
-        IUnitOfWork unitOfWork)
-    {
-        _matchRepository = matchRepository;
-        _playerRepository = playerRepository;
-        _tournamentRepository = tournamentRepository;
-        _logger = logger;
-        _unitOfWork = unitOfWork;
-    }
+    private readonly IMatchRepository _matchRepository = matchRepository;
+    private readonly IPlayerRepository _playerRepository = playerRepository;
+    private readonly ITournamentRepository _tournamentRepository = tournamentRepository;
+    private readonly ILogger<MatchService> _logger = logger;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     public async Task<MatchDto> CreateMatchAsync(CreateMatchRequest request)
     {
-        // Récupération ou création des joueurs
+        // Data validation
+        if (string.IsNullOrWhiteSpace(request.Player1FirstName) || string.IsNullOrWhiteSpace(request.Player1LastName) ||
+            string.IsNullOrWhiteSpace(request.Player2FirstName) || string.IsNullOrWhiteSpace(request.Player2LastName))
+        {
+            throw new ArgumentException("Player names cannot be empty.");
+        }
+        if (request.Player1FirstName == request.Player2FirstName && request.Player1LastName == request.Player2LastName)
+        {
+            throw new ArgumentException("Players cannot be the same.");
+        }
+        if (request.BestOfSets < 1 || request.BestOfSets > 5)
+        {
+            throw new ArgumentOutOfRangeException(nameof(request.BestOfSets), "BestOfSets must be between 1 and 5.");
+        }
+        if (string.IsNullOrWhiteSpace(request.ServingPlayerLastName))
+        {
+            throw new ArgumentException("Serving player last name cannot be empty.");
+        }
+
         var player1 = await _playerRepository.GetOrCreateAsync(request.Player1FirstName, request.Player1LastName);
         var player2 = await _playerRepository.GetOrCreateAsync(request.Player2FirstName, request.Player2LastName);
 
+        // Vérification de l'existence du joueur servant
+        var servingPlayer = await _playerRepository.GetByFullNameAsync(
+            request.ServingPlayerFirstName,
+            request.ServingPlayerLastName) ?? throw new ArgumentException($"Serving player '{request.ServingPlayerFirstName} {request.ServingPlayerLastName}' not found.");
+        if (servingPlayer.Id != player1.Id && servingPlayer.Id != player2.Id)
+        {
+            throw new ArgumentException("Serving player must be one of the match participants.");
+        }
         // Gestion du tournoi (optionnel)
         Tournament? tournament = null;
         if (!string.IsNullOrWhiteSpace(request.TournamentName) && request.TournamentStartDate != null)
@@ -50,6 +67,8 @@ public class MatchService : IMatchService
         {
             Player1Id = player1.Id,
             Player2Id = player2.Id,
+            ServingPlayerId = servingPlayer.Id,
+            IsCompleted = false,
             BestOfSets = request.BestOfSets,
             StartTime = DateTime.UtcNow,
             TournamentId = tournament?.Id
@@ -68,8 +87,7 @@ public class MatchService : IMatchService
             Player2FirstName = player2.FirstName,
             Player2LastName = player2.LastName,
             BestOfSets = match.BestOfSets,
-            StartTime = match.StartTime,
-            Surface = match.Surface
+            StartTime = match.StartTime
         };
     }
 
@@ -80,47 +98,13 @@ public class MatchService : IMatchService
 
         if (match == null) return null;
 
-        return new MatchDetailsDto
-        {
-            Id = match.Id,
-            Player1FirstName = match.Player1?.FirstName ?? "",
-            Player1LastName = match.Player1?.LastName ?? "",
-            Player2FirstName = match.Player2?.FirstName ?? "",
-            Player2LastName = match.Player2?.LastName ?? "",
-            WinnerFirstName = match.Winner?.FirstName,
-            WinnerLastName = match.Winner?.LastName,
-            StartTime = match.StartTime,
-            EndTime = match.EndTime,
-            BestOfSets = match.BestOfSets,
-            Surface = match.Surface,
-            TournamentName = match.Tournament?.Name,
-            TournamentStartDate = match.Tournament?.StartDate,
-            Sets = [.. match.Sets.OrderBy(s => s.SetNumber).Select(s => new SetScoreDto
-            {
-                SetNumber = s.SetNumber,
-                Player1Games = s.Games.Count(g => g.WinnerId == match.Player1Id),
-                Player2Games = s.Games.Count(g => g.WinnerId == match.Player2Id),
-            })]
-        };
+        return match.MapToFullDto();
     }
 
     public async Task<List<MatchDto>> GetAllAsync()
     {
         var matches = await _matchRepository.GetAllAsync();
 
-        return matches.Select(m => new MatchDto
-        {
-            Id = m.Id,
-            Player1FirstName = m.Player1?.FirstName ?? "",
-            Player1LastName = m.Player1?.LastName ?? "",
-            Player2FirstName = m.Player2?.FirstName ?? "",
-            Player2LastName = m.Player2?.LastName ?? "",
-            BestOfSets = m.BestOfSets,
-            StartTime = m.StartTime,
-            EndTime = m.EndTime,
-            Surface = m.Surface,
-            WinnerFirstName = m.Winner?.FirstName,
-            WinnerLastName = m.Winner?.LastName
-        }).ToList();
-    }
+        return [.. matches.Select(m => m.MapToMatchDto())];
+    } 
 }

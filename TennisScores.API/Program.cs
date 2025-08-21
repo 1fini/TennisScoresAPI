@@ -5,7 +5,6 @@ using TennisScores.Domain.Repositories;
 using TennisScores.Infrastructure;
 using TennisScores.Infrastructure.Data;
 using TennisScores.Infrastructure.Repositories;
-using TennisScoresAPI;
 using TennisScoresAPI.Hubs;
 
 

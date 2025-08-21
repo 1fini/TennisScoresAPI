@@ -98,6 +98,8 @@ public class LiveScoreService(
                 currentGame.WinnerId = winnerId;
                 _gameRepository.Update(currentGame);
 
+                SwitchServer(match);
+
                 // Is Set Completed?
                 if (CheckSetIsOver(currentSet, match, format))
                 {
@@ -143,23 +145,13 @@ public class LiveScoreService(
             await _unitOfWork.SaveChangesAsync();
 
             //Broadcasting to clients
-            await _hubContext.Clients.Group(match.Id.ToString()).SendAsync("ReceivePoint", match.MapToScoreDto());
+            await _hubContext.Clients.Group(match.Id.ToString()).SendAsync("ReceivePoint", match.MapToFullDto());
         }
         catch (Exception ex)
         {
             // Retry the operation after resolving the concurrency conflict
-            throw new InvalidOperationException("An error occurred while adding a point to the match.", ex);    
+            throw new InvalidOperationException("An error occurred while adding a point to the match.", ex);
         }
-    }
-
-    private static int GetGamesWonByPlayer(TennisSet set, Guid playerId)
-    {
-        return set.Games.Count(g => g.IsCompleted && g.WinnerId == playerId);
-    }
-
-    private static int GetSetsWonByPlayer(Match match, Guid playerId)
-    {
-        return match.Sets.Count(s => s.IsCompleted && s.WinnerId == playerId);
     }
 
     private static bool CheckGameIsOver(Game game, Match match)
@@ -295,5 +287,10 @@ public class LiveScoreService(
         return isFinalSet && isTieBreakGame;
     }
 
-
+    private void SwitchServer(Match match)
+    {
+        match.ServingPlayerId = (match.ServingPlayerId == match.Player1Id)
+            ? match.Player2Id
+            : match.Player1Id;
+    }
 }

@@ -42,5 +42,5 @@ namespace TennisScores.Domain.Dtos;
         public decimal? PrizeMoney { get; set; }
         public string? PrizeMoneyCurrency { get; set; }
 
-        public List<MatchDto> Matches { get; set; } = new();
+        public List<MatchDetailsDto> Matches { get; set; } = new();
     }

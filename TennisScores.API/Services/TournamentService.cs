@@ -48,11 +48,11 @@ public class TournamentService : ITournamentService
 
     public async Task<TournamentDto?> GetByIdAsync(Guid id)
     {
-        return (await _tournamentRepository.GetByIdAsync(id))?.ToDto();
+        return (await _tournamentRepository.GetByIdAsync(id))?.ToDetailedDto();
     }
 
     public async Task<IEnumerable<TournamentDto>> GetAllAsync()
     {
-        return (await _tournamentRepository.GetAllAsync()).Select(t => t.ToDto());
+        return (await _tournamentRepository.GetAllAsync()).Select(t => t.ToDetailedDto());
     }
 }

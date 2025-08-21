@@ -134,8 +134,8 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("Roger", result.Player1FirstName);
-        Assert.Equal("Nadal", result.Player2LastName);
+        Assert.Equal("Roger", result.Player1.FirstName);
+        Assert.Equal("Nadal", result.Player2.LastName);
         Assert.Single(result.Sets);
         Assert.Equal(2, result.Sets[0].Player1Games);
         Assert.Equal(1, result.Sets[0].Player2Games);
@@ -153,6 +153,8 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
             Player2LastName = "Sinner",
             BestOfSets = 3,
             TournamentName = "US Open",
+            ServingPlayerFirstName = "Carlos",
+            ServingPlayerLastName = "Alcaraz",
             TournamentStartDate = new DateTime(2025, 8, 2)
         };
 
@@ -183,6 +185,11 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
     public async Task CreateMatchAsync_ShouldThrow_WhenTournamentNotFound()
     {
         // Arrange
+        var player1 = new Player { FirstName = "Aryna", LastName = "Sabalenka" };
+        var player2 = new Player { FirstName = "Iga", LastName = "Swiatek" };
+        _context.Players.AddRange(player1, player2);
+        await _context.SaveChangesAsync();
+
         var request = new CreateMatchRequest
         {
             Player1FirstName = "Aryna",
@@ -190,6 +197,8 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
             Player2FirstName = "Iga",
             Player2LastName = "Swiatek",
             BestOfSets = 3,
+            ServingPlayerFirstName = "Aryna",
+            ServingPlayerLastName = "Sabalenka",
             TournamentName = "FakeTournament", // tournoi inexistant
             TournamentStartDate = new DateTime(2024, 5, 1),
         };
@@ -200,6 +209,5 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         // Assert
         await act.Should().ThrowAsync<ArgumentException>()
             .WithMessage("Tournament with name 'FakeTournament' and start date * not found.");  
-         //   .WithMessage("Tournament with name 'FakeTournament' and start date '01/05/2024 00:00:00' not found.");
     }
 }
