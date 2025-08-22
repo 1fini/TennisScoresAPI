@@ -5,7 +5,7 @@ using TennisScores.Domain.Dtos;
 using TennisScores.Domain.Entities;
 using TennisScores.Domain.Enums;
 using TennisScores.Domain.Repositories;
-using TennisScoresAPI.Hubs;
+using TennisScores.API.Hubs;
 
 namespace TennisScores.API.Services;
 
@@ -145,7 +145,9 @@ public class LiveScoreService(
             await _unitOfWork.SaveChangesAsync();
 
             //Broadcasting to clients
-            await _hubContext.Clients.Group(match.Id.ToString()).SendAsync("ReceivePoint", match.MapToFullDto());
+            //await _hubContext.Clients.Group(match.Id.ToString()).SendAsync("ReceivePoint", match.MapToFullDto());
+
+            await _hubContext.BroadcastPoint(match.MapToFullDto());
         }
         catch (Exception ex)
         {

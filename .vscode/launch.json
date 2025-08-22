@@ -1,6 +1,7 @@
 {
     "version": "0.2.0",
     "configurations": [
+        
         {
             // Utiliser IntelliSense pour déterminer quels attributs existent pour le débogage C#
             // Utiliser le pointage pour la description des attributs existants

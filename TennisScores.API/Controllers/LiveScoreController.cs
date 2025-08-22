@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using TennisScores.API.Services;
 using TennisScores.Domain.Dtos;
 using System.Threading.Tasks;
-using TennisScores.Domain.Entities;
 
 [ApiController]
 [Route("api/[controller]")]

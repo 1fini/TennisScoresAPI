@@ -4,10 +4,9 @@ using TennisScores.Infrastructure;
 using TennisScores.Infrastructure.Data;
 using Microsoft.AspNetCore.SignalR;
 using Moq;
-using TennisScoresAPI.Hubs;
 using Match = TennisScores.Domain.Entities.Match;
-using System.Drawing;
 using TennisScores.Domain.Enums;
+using TennisScores.API.Hubs;
 
 namespace TennisScores.Tests.Integration.Services;
 

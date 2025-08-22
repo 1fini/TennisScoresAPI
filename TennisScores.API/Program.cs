@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using TennisScores.API.Hubs;
 using TennisScores.API.Services;
 using TennisScores.Domain;
 using TennisScores.Domain.Repositories;
 using TennisScores.Infrastructure;
 using TennisScores.Infrastructure.Data;
 using TennisScores.Infrastructure.Repositories;
-using TennisScoresAPI.Hubs;
 
 
 internal class Program
