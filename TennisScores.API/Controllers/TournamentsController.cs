@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 using TennisScores.API.Services;
 using TennisScores.Domain.Dtos;
-using TennisScores.Domain.Entities;
 
 namespace TennisScores.API.Controllers;
 
@@ -18,10 +16,11 @@ public class TournamentsController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(TournamentDto))]
     public async Task<IActionResult> Create([FromBody] CreateTournamentRequest request)
     {
-        var id = await _tournamentService.CreateTournamentAsync(request);
-        return CreatedAtAction(nameof(GetById), new { id }, new { Id = id });
+        var tournament = await _tournamentService.CreateTournamentAsync(request);
+        return CreatedAtAction(nameof(GetById), new {id = tournament.Id}, tournament);
     }
 
     [HttpGet("{id}")]

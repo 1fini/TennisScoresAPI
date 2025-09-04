@@ -16,7 +16,7 @@ public class TournamentService : ITournamentService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Guid> CreateTournamentAsync(CreateTournamentRequest request)
+    public async Task<TournamentDto> CreateTournamentAsync(CreateTournamentRequest request)
     {
         var tournament = new Tournament
         {
@@ -43,7 +43,7 @@ public class TournamentService : ITournamentService
         await _tournamentRepository.AddAsync(tournament);
         await _unitOfWork.SaveChangesAsync();
 
-        return tournament.Id;
+        return tournament.ToDetailedDto();
     }
 
     public async Task<TournamentDto?> GetByIdAsync(Guid id)

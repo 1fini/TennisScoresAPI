@@ -50,9 +50,9 @@ public class MatchService(
         {
             throw new ArgumentException("Serving player must be one of the match participants.");
         }
-        // Gestion du tournoi (optionnel)
+        // Tournament
         Tournament? tournament = null;
-        if (!string.IsNullOrWhiteSpace(request.TournamentName) && request.TournamentStartDate != null)
+        if (request.TournmentId == null && !string.IsNullOrWhiteSpace(request.TournamentName) && request.TournamentStartDate != null)
         {
             tournament = await _tournamentRepository.GetByNameAndStartDateAsync(request.TournamentName!, request.TournamentStartDate!.Value);
 
@@ -61,8 +61,15 @@ public class MatchService(
                 throw new ArgumentException($"Tournament with name '{request.TournamentName}' and start date '{request.TournamentStartDate}' not found.");
             }
         }
+        else if (request.TournmentId != null)
+        {
+            tournament = await _tournamentRepository.GetByIdAsync(request.TournmentId.Value);
+            if (tournament == null)
+            {
+                throw new ArgumentException($"Tournament with ID '{request.TournmentId}' not found.");
+            }
+        }
 
-        // Création du match
         var match = new Match
         {
             Player1Id = player1.Id,

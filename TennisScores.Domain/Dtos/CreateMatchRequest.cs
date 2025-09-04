@@ -24,6 +24,8 @@ public class CreateMatchRequest
     [Required]
     public string ServingPlayerFirstName { get; set; } = string.Empty;
 
+    public Guid? TournmentId { get; set; }
+
     public string? TournamentName { get; set; }
     public DateTime? TournamentStartDate { get; set; }
 }
