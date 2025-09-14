@@ -1,12 +1,15 @@
 using TennisScores.Domain.Dtos;
-using TennisScoresAPI.Dtos;
 
 namespace TennisScores.API.Services;
 
+/// <summary>
+/// Interface for match services.
+/// </summary>
 public interface IMatchService
 {
     Task<MatchDto> CreateMatchAsync(CreateMatchRequest request);
     Task<MatchDetailsDto?> GetMatchAsync(Guid matchId);
+    Task<List<MatchDto>> GetAllAsync();
     /*
     Task<IEnumerable<MatchDto>> GetMatchesByPlayerIdAsync(Guid playerId);
     Task<IEnumerable<MatchDto>> GetMatchesByTournamentIdAsync(Guid tournamentId);

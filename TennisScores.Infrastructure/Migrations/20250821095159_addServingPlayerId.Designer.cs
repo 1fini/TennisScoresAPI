@@ -2,18 +2,21 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TennisScores.Infrastructure.Data;
 
 #nullable disable
 
-namespace TennisScores.Migrations
+namespace TennisScores.Infrastructure.Migrations
 {
     [DbContext(typeof(TennisDbContext))]
-    partial class TennisDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250821095159_addServingPlayerId")]
+    partial class addServingPlayerId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,7 +25,7 @@ namespace TennisScores.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Game", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Game", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,6 +33,11 @@ namespace TennisScores.Migrations
 
                     b.Property<int>("GameNumber")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsCompleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsTiebreak")
                         .HasColumnType("boolean");
@@ -55,7 +63,7 @@ namespace TennisScores.Migrations
                     b.ToTable("Games");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Match", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Match", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -67,6 +75,11 @@ namespace TennisScores.Migrations
                     b.Property<DateTime?>("EndTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsCompleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<Guid>("Player1Id")
                         .HasColumnType("uuid");
 
@@ -75,6 +88,9 @@ namespace TennisScores.Migrations
 
                     b.Property<DateTime?>("ScheduledStartTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ServingPlayerId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("timestamp with time zone");
@@ -101,7 +117,142 @@ namespace TennisScores.Migrations
                     b.ToTable("Matches");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Player", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.MatchFormat", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Application")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("DecidingPointEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("GamesPerSet")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SetsToWin")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("SuperTieBreakForFinalSet")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SuperTieBreakPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("TieBreakEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("TieBreakPoints")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MatchFormats");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Application = "Format traditionnel",
+                            DecidingPointEnabled = false,
+                            GamesPerSet = 6,
+                            Name = "Format 1",
+                            SetsToWin = 3,
+                            SuperTieBreakForFinalSet = false,
+                            SuperTieBreakPoints = 10,
+                            TieBreakEnabled = true,
+                            TieBreakPoints = 7
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Application = "Format officiel 65+",
+                            DecidingPointEnabled = false,
+                            GamesPerSet = 6,
+                            Name = "Format 2",
+                            SetsToWin = 2,
+                            SuperTieBreakForFinalSet = true,
+                            SuperTieBreakPoints = 10,
+                            TieBreakEnabled = true,
+                            TieBreakPoints = 7
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Application = "Format TMC",
+                            DecidingPointEnabled = true,
+                            GamesPerSet = 4,
+                            Name = "Format 3",
+                            SetsToWin = 2,
+                            SuperTieBreakForFinalSet = true,
+                            SuperTieBreakPoints = 10,
+                            TieBreakEnabled = true,
+                            TieBreakPoints = 7
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Application = "Double Format",
+                            DecidingPointEnabled = true,
+                            GamesPerSet = 6,
+                            Name = "Format 4",
+                            SetsToWin = 2,
+                            SuperTieBreakForFinalSet = true,
+                            SuperTieBreakPoints = 10,
+                            TieBreakEnabled = true,
+                            TieBreakPoints = 7
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Application = "TMC à partir de 8 ans",
+                            DecidingPointEnabled = true,
+                            GamesPerSet = 3,
+                            Name = "Format 5",
+                            SetsToWin = 2,
+                            SuperTieBreakForFinalSet = true,
+                            SuperTieBreakPoints = 10,
+                            TieBreakEnabled = true,
+                            TieBreakPoints = 7
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Application = "TMC 11–15 ans",
+                            DecidingPointEnabled = true,
+                            GamesPerSet = 4,
+                            Name = "Format 6",
+                            SetsToWin = 2,
+                            SuperTieBreakForFinalSet = true,
+                            SuperTieBreakPoints = 10,
+                            TieBreakEnabled = true,
+                            TieBreakPoints = 7
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Application = "TMC 11–15 ans",
+                            DecidingPointEnabled = true,
+                            GamesPerSet = 5,
+                            Name = "Format 7",
+                            SetsToWin = 2,
+                            SuperTieBreakForFinalSet = true,
+                            SuperTieBreakPoints = 10,
+                            TieBreakEnabled = true,
+                            TieBreakPoints = 7
+                        });
+                });
+
+            modelBuilder.Entity("TennisScores.Domain.Entities.Player", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -129,19 +280,19 @@ namespace TennisScores.Migrations
                     b.ToTable("Players");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Point", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Point", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
                     b.Property<Guid>("GameId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("PointNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PointType")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("Timestamp")
@@ -159,11 +310,16 @@ namespace TennisScores.Migrations
                     b.ToTable("Points");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.TennisSet", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.TennisSet", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCompleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<Guid>("MatchId")
                         .HasColumnType("uuid");
@@ -189,7 +345,7 @@ namespace TennisScores.Migrations
                     b.ToTable("Sets");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Tournament", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Tournament", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -213,6 +369,9 @@ namespace TennisScores.Migrations
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("MatchFormatId")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("MaxAge")
                         .HasColumnType("integer");
@@ -250,18 +409,23 @@ namespace TennisScores.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tournament");
+                    b.HasIndex("MatchFormatId");
+
+                    b.HasIndex("Name", "StartDate")
+                        .IsUnique();
+
+                    b.ToTable("Tournaments");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Game", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Game", b =>
                 {
-                    b.HasOne("TennisScoresAPI.Models.TennisSet", "Set")
+                    b.HasOne("TennisScores.Domain.Entities.TennisSet", "Set")
                         .WithMany("Games")
                         .HasForeignKey("SetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TennisScoresAPI.Models.Player", "Winner")
+                    b.HasOne("TennisScores.Domain.Entities.Player", "Winner")
                         .WithMany()
                         .HasForeignKey("WinnerId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -271,26 +435,26 @@ namespace TennisScores.Migrations
                     b.Navigation("Winner");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Match", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Match", b =>
                 {
-                    b.HasOne("TennisScoresAPI.Models.Player", "Player1")
+                    b.HasOne("TennisScores.Domain.Entities.Player", "Player1")
                         .WithMany("MatchesAsPlayer1")
                         .HasForeignKey("Player1Id")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TennisScoresAPI.Models.Player", "Player2")
+                    b.HasOne("TennisScores.Domain.Entities.Player", "Player2")
                         .WithMany("MatchesAsPlayer2")
                         .HasForeignKey("Player2Id")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TennisScoresAPI.Models.Tournament", "Tournament")
+                    b.HasOne("TennisScores.Domain.Entities.Tournament", "Tournament")
                         .WithMany("Matches")
                         .HasForeignKey("TournamentId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("TennisScoresAPI.Models.Player", "Winner")
+                    b.HasOne("TennisScores.Domain.Entities.Player", "Winner")
                         .WithMany()
                         .HasForeignKey("WinnerId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -304,15 +468,15 @@ namespace TennisScores.Migrations
                     b.Navigation("Winner");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Point", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Point", b =>
                 {
-                    b.HasOne("TennisScoresAPI.Models.Game", "Game")
+                    b.HasOne("TennisScores.Domain.Entities.Game", "Game")
                         .WithMany("Points")
                         .HasForeignKey("GameId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TennisScoresAPI.Models.Player", "Winner")
+                    b.HasOne("TennisScores.Domain.Entities.Player", "Winner")
                         .WithMany()
                         .HasForeignKey("WinnerId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -322,15 +486,15 @@ namespace TennisScores.Migrations
                     b.Navigation("Winner");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.TennisSet", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.TennisSet", b =>
                 {
-                    b.HasOne("TennisScoresAPI.Models.Match", "Match")
+                    b.HasOne("TennisScores.Domain.Entities.Match", "Match")
                         .WithMany("Sets")
                         .HasForeignKey("MatchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TennisScoresAPI.Models.Player", "Winner")
+                    b.HasOne("TennisScores.Domain.Entities.Player", "Winner")
                         .WithMany()
                         .HasForeignKey("WinnerId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -340,29 +504,40 @@ namespace TennisScores.Migrations
                     b.Navigation("Winner");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Game", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Tournament", b =>
+                {
+                    b.HasOne("TennisScores.Domain.Entities.MatchFormat", "MatchFormat")
+                        .WithMany()
+                        .HasForeignKey("MatchFormatId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MatchFormat");
+                });
+
+            modelBuilder.Entity("TennisScores.Domain.Entities.Game", b =>
                 {
                     b.Navigation("Points");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Match", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Match", b =>
                 {
                     b.Navigation("Sets");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Player", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Player", b =>
                 {
                     b.Navigation("MatchesAsPlayer1");
 
                     b.Navigation("MatchesAsPlayer2");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.TennisSet", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.TennisSet", b =>
                 {
                     b.Navigation("Games");
                 });
 
-            modelBuilder.Entity("TennisScoresAPI.Models.Tournament", b =>
+            modelBuilder.Entity("TennisScores.Domain.Entities.Tournament", b =>
                 {
                     b.Navigation("Matches");
                 });

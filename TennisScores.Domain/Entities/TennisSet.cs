@@ -14,6 +14,7 @@ public class TennisSet
 
     public Guid? WinnerId { get; set; }
     public Player? Winner { get; set; }
+    public bool IsCompleted { get; set; }
 
     public ICollection<Game> Games { get; set; } = new List<Game>();
 }

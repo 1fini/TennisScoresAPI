@@ -1,9 +1,10 @@
-namespace TennisScores.Domain.Dtos
+namespace TennisScores.Domain.Dtos;
+
+public class SetScoreDto
 {
-    public class SetScoreDto
-    {
-        public int SetNumber { get; set; }            // 1, 2, 3, etc.
-        public int Player1Games { get; set; }         // ex: 6
-        public int Player2Games { get; set; }         // ex: 4
-    }
+    public int SetNumber { get; set; }
+    public int Player1Games { get; set; }
+    public int Player2Games { get; set; }
+    public bool IsCompleted { get; set; }
+    public Guid? WinnerId { get; set; }
 }

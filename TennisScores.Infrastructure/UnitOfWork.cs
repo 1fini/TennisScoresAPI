@@ -1,4 +1,6 @@
 // TennisScores.Infrastructure/UnitOfWork.cs
+using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 using TennisScores.Domain;
 using TennisScores.Infrastructure.Data;
 
@@ -9,8 +11,6 @@ namespace TennisScores.Infrastructure
         private readonly TennisDbContext _context = context;
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            return await _context.SaveChangesAsync(cancellationToken);
-        }
+            => await _context.SaveChangesAsync(cancellationToken);
     }
 }

@@ -11,6 +11,7 @@ namespace TennisScores.Domain.Repositories
         Task AddAsync(T entity);
         void Remove(T entity);
         Task SaveChangesAsync();
-        IQueryable<T> Query();
+        void Update(T entity);
+        IQueryable<T> Query(); // Not sure it's needed here, but keeping for consistency
     }
 }

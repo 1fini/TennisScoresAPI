@@ -1,60 +1,79 @@
 using TennisScores.Domain.Entities;
 using TennisScores.Domain.Dtos;
 using TennisScores.Domain.Repositories;
-using TennisScoresAPI.Dtos;
+using TennisScores.Domain;
 
 namespace TennisScores.API.Services;
 
-public class MatchService : IMatchService
+public class MatchService(
+    IMatchRepository matchRepository,
+    IPlayerRepository playerRepository,
+    ITournamentRepository tournamentRepository,
+    ILogger<MatchService> logger,
+    IUnitOfWork unitOfWork) : IMatchService
 {
-    private readonly IMatchRepository _matchRepository;
-    private readonly IPlayerRepository _playerRepository;
-    private readonly ITournamentRepository _tournamentRepository;
-    private readonly ILogger<MatchService> _logger;
-
-    public MatchService(
-        IMatchRepository matchRepository,
-        IPlayerRepository playerRepository,
-        ITournamentRepository tournamentRepository,
-        ILogger<MatchService> logger)
-    {
-        _matchRepository = matchRepository;
-        _playerRepository = playerRepository;
-        _tournamentRepository = tournamentRepository;
-        _logger = logger;
-    }
+    private readonly IMatchRepository _matchRepository = matchRepository;
+    private readonly IPlayerRepository _playerRepository = playerRepository;
+    private readonly ITournamentRepository _tournamentRepository = tournamentRepository;
+    private readonly ILogger<MatchService> _logger = logger;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     public async Task<MatchDto> CreateMatchAsync(CreateMatchRequest request)
     {
-        // Récupération ou création des joueurs
-        var player1 = await _playerRepository.GetOrCreateAsync(request.Player1FirstName, request.Player1LastName);
-        var player2 = await _playerRepository.GetOrCreateAsync(request.Player2FirstName, request.Player2LastName);
-
-        // Gestion du tournoi (optionnel)
-        Tournament? tournament = null;
-        if (!string.IsNullOrWhiteSpace(request.TournamentName) && request.TournamentStartDate != null)
+        // Data validation
+        if (request.Player1Id == request.Player2Id)
         {
-            tournament = await _tournamentRepository.GetByNameAndStartDateAsync(request.TournamentName!, request.TournamentStartDate!.Value);
+            throw new ArgumentException("Players cannot be the same.");
+        }
+        if (request.BestOfSets < 1 || request.BestOfSets > 5)
+        {
+            throw new ArgumentOutOfRangeException(nameof(request.BestOfSets), "BestOfSets must be between 1 and 5.");
+        }
+        if (request.ServingPlayer != request.Player1Id && request.ServingPlayer != request.Player2Id)
+        {
+            throw new ArgumentException("Serving player must be one of the match participants.");
+        }
+
+        var player1 = await _playerRepository.GetByIdAsync(request.Player1Id) ?? throw new ArgumentException($"Player 1 with ID '{request.Player1Id}' not found.");
+        var player2 = await _playerRepository.GetByIdAsync(request.Player2Id) ?? throw new ArgumentException($"Player 2 with ID '{request.Player2Id}' not found.");
+        var servingPlayer = request.ServingPlayer == player1.Id ? player1 : player2;
+
+        // Tournament
+        Tournament? tournament = null;
+        if (request.TournamentId != null && request.TournamentId.HasValue)
+        {
+            tournament = await _tournamentRepository.GetByIdAsync(request.TournamentId.Value);
 
             if (tournament == null)
             {
-                throw new ArgumentException($"Tournament with name '{request.TournamentName}' and start date '{request.TournamentStartDate}' not found.");
+                throw new ArgumentException($"Tournament with ID '{request.TournamentId}' not found.");
+            }
+        }
+        else
+        {
+            // If no tournament is specified, ensure BestOfSets is provided
+            if (request.BestOfSets < 1 || request.BestOfSets > 5)
+            {
+                throw new ArgumentOutOfRangeException(nameof(request.BestOfSets), "BestOfSets must be between 1 and 5 when no tournament is specified.");
             }
         }
 
-        // Création du match
         var match = new Match
         {
-            Id = Guid.NewGuid(),
             Player1Id = player1.Id,
             Player2Id = player2.Id,
+            ServingPlayerId = servingPlayer.Id,
+            IsCompleted = false,
             BestOfSets = request.BestOfSets,
             StartTime = DateTime.UtcNow,
             TournamentId = tournament?.Id
         };
 
         await _matchRepository.AddAsync(match);
+        _logger.LogInformation($"Match created: {match.Id} between {player1.FirstName} {player1.LastName} and {player2.FirstName} {player2.LastName}");
 
+        await _unitOfWork.SaveChangesAsync();
+        
         return new MatchDto
         {
             Id = match.Id,
@@ -63,8 +82,7 @@ public class MatchService : IMatchService
             Player2FirstName = player2.FirstName,
             Player2LastName = player2.LastName,
             BestOfSets = match.BestOfSets,
-            StartTime = match.StartTime,
-            Surface = match.Surface
+            StartTime = match.StartTime
         };
     }
 
@@ -75,28 +93,13 @@ public class MatchService : IMatchService
 
         if (match == null) return null;
 
-        return new MatchDetailsDto
-        {
-            Id = match.Id,
-            Player1FirstName = match.Player1?.FirstName ?? "",
-            Player1LastName = match.Player1?.LastName ?? "",
-            Player2FirstName = match.Player2?.FirstName ?? "",
-            Player2LastName = match.Player2?.LastName ?? "",
-            WinnerFirstName = match.Winner?.FirstName,
-            WinnerLastName = match.Winner?.LastName,
-            StartTime = match.StartTime,
-            EndTime = match.EndTime,
-            BestOfSets = match.BestOfSets,
-            Surface = match.Surface,
-            TournamentName = match.Tournament?.Name,
-            TournamentStartDate = match.Tournament?.StartDate,
-            Sets = [.. match.Sets.OrderBy(s => s.SetNumber).Select(s => new SetScoreDto
-            {
-                SetNumber = s.SetNumber,
-                Player1Games = s.Games.Count(g => g.WinnerId == match.Player1Id),
-                Player2Games = s.Games.Count(g => g.WinnerId == match.Player2Id),
-            })]
-        };
+        return match.MapToFullDto();
     }
 
+    public async Task<List<MatchDto>> GetAllAsync()
+    {
+        var matches = await _matchRepository.GetAllAsync();
+
+        return [.. matches.Select(m => m.MapToMatchDto())];
+    } 
 }

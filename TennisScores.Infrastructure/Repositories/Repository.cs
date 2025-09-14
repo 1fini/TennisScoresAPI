@@ -41,5 +41,10 @@ namespace TennisScores.Infrastructure.Repositories
         }
 
         public IQueryable<T> Query() => _dbSet.AsQueryable();
+
+        public void Update(T entity)
+        {
+            _context.Update(entity);
+        }
     }
 }

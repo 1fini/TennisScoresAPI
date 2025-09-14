@@ -1,16 +1,18 @@
-using Xunit;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using TennisScores.Domain.Entities;
-using TennisScores.Infrastructure.Repositories;
-using TennisScores.API.Services;
-using TennisScores.Infrastructure.Data;
-using TennisScores.Domain.Dtos;
-using TennisScores.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using FluentAssertions;
+using TennisScores.API.Services;
+using TennisScores.Domain;
+using TennisScores.Domain.Dtos;
+using TennisScores.Domain.Entities;
+using TennisScores.Domain.Repositories;
+using TennisScores.Infrastructure;
+using TennisScores.Infrastructure.Data;
+using TennisScores.Infrastructure.Repositories;
+using Xunit;
 
-namespace TennisScores.IntegrationTests;
+namespace TennisScores.Tests.Integration.Services;
 
 public class MatchServiceTests : IClassFixture<DatabaseFixture>
 {
@@ -25,8 +27,14 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         IPlayerRepository playerRepository = new PlayerRepository(_context);
         ITournamentRepository tournamentRepository = new TournamentRepository(_context);
         ILogger<MatchService> logger = NullLogger<MatchService>.Instance;
+        IUnitOfWork unitOfWork = new UnitOfWork(_context);
 
-        _matchService = new MatchService(matchRepository, playerRepository, tournamentRepository, logger);
+        _matchService = new MatchService(
+            matchRepository,
+            playerRepository,
+            tournamentRepository,
+            logger,
+            unitOfWork);
     }
     private TennisDbContext CreateInMemoryDbContext()
     {
@@ -114,15 +122,20 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         await context.SaveChangesAsync();
 
         var matchRepo = new MatchRepository(context);
-        var matchService = new MatchService(matchRepo, null!, null!, null!); // autres deps null pour ce test
+        var matchService = new MatchService(
+            matchRepo,
+            null!,
+            null!,
+            null!,
+            null!); // autres deps null pour ce test
 
         // Act
         var result = await matchService.GetMatchAsync(match.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("Roger", result.Player1FirstName);
-        Assert.Equal("Nadal", result.Player2LastName);
+        Assert.Equal("Roger", result.Player1.FirstName);
+        Assert.Equal("Nadal", result.Player2.LastName);
         Assert.Single(result.Sets);
         Assert.Equal(2, result.Sets[0].Player1Games);
         Assert.Equal(1, result.Sets[0].Player2Games);
@@ -132,15 +145,18 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
     public async Task CreateMatchAsync_ShouldCreatePlayersAndMatch_WhenPlayersDoNotExist()
     {
         // Arrange
+        var player1 = _context.Players.FirstOrDefault(p => p.FirstName == "Carlos" && p.LastName == "Alcaraz");
+        var player2 = _context.Players.FirstOrDefault(p => p.FirstName == "Jannik" && p.LastName == "Sinner");
+
+        var tournament = _context.Tournaments.FirstOrDefault(t => t.Name == "US Open" && t.StartDate == new DateTime(2025, 8, 2));
+
         var request = new CreateMatchRequest
         {
-            Player1FirstName = "Carlos",
-            Player1LastName = "Alcaraz",
-            Player2FirstName = "Jannik",
-            Player2LastName = "Sinner",
+            Player1Id = player1?.Id ?? Guid.NewGuid(),
+            Player2Id = player2?.Id ?? Guid.NewGuid(),
             BestOfSets = 3,
-            TournamentName = "US Open",
-            TournamentStartDate = new DateTime(2025, 8, 2)
+            TournamentId = tournament?.Id,
+            ServingPlayer = player1?.Id ?? Guid.NewGuid(),
         };
 
         // Act
@@ -151,8 +167,6 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         Assert.NotNull(match);
         Assert.Equal(3, match.BestOfSets);
 
-        var player1 = await _context.Players.FindAsync(match.Player1Id);
-        var player2 = await _context.Players.FindAsync(match.Player2Id);
         Assert.NotNull(player1);
         Assert.NotNull(player2);
         Assert.Equal("Carlos", player1.FirstName);
@@ -160,7 +174,6 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         Assert.Equal("Jannik", player2.FirstName);
         Assert.Equal("Sinner", player2.LastName);
 
-        var tournament = await _context.Tournaments.FindAsync(match.TournamentId);
         Assert.NotNull(tournament);
         Assert.Equal("US Open", tournament.Name);
         Assert.Equal(new DateTime(2025, 8, 2), tournament.StartDate);
@@ -170,15 +183,19 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
     public async Task CreateMatchAsync_ShouldThrow_WhenTournamentNotFound()
     {
         // Arrange
+        var player1 = new Player { FirstName = "Aryna", LastName = "Sabalenka" };
+        var player2 = new Player { FirstName = "Iga", LastName = "Swiatek" };
+        _context.Players.AddRange(player1, player2);
+        await _context.SaveChangesAsync();
+
+        var tournamentId = Guid.NewGuid(); // Unknown tournament ID
+
         var request = new CreateMatchRequest
         {
-            Player1FirstName = "Aryna",
-            Player1LastName = "Sabalenka",
-            Player2FirstName = "Iga",
-            Player2LastName = "Swiatek",
-            BestOfSets = 3,
-            TournamentName = "FakeTournament", // tournoi inexistant
-            TournamentStartDate = new DateTime(2024, 5, 1),
+            Player1Id = player1.Id,
+            Player2Id = player2.Id,
+            ServingPlayer = player1.Id,
+            TournamentId = tournamentId,
         };
 
         // Act
@@ -186,6 +203,6 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>()
-            .WithMessage("Tournament with name 'FakeTournament' and start date '01/05/2024 00:00:00' not found.");
+            .WithMessage($"Tournament with ID '{tournamentId}' not found.");  
     }
 }

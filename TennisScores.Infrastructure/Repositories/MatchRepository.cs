@@ -5,15 +5,8 @@ using TennisScores.Infrastructure.Data;
 
 namespace TennisScores.Infrastructure.Repositories
 {
-    public class MatchRepository : Repository<Match>, IMatchRepository
+    public class MatchRepository(TennisDbContext context) : Repository<Match>(context), IMatchRepository
     {
-        private readonly TennisDbContext _context;
-
-        public MatchRepository(TennisDbContext context) : base(context)
-        {
-            _context = context;
-        }
-
         public async Task<IEnumerable<Match>> GetMatchesByPlayerIdAsync(Guid playerId)
         {
             return await _context.Matches
@@ -38,9 +31,39 @@ namespace TennisScores.Infrastructure.Repositories
                 .Include(m => m.Player2)
                 .Include(m => m.Winner)
                 .Include(m => m.Tournament)
+                    .ThenInclude(t => t!.MatchFormat)
                 .Include(m => m.Sets)
-                .ThenInclude(s => s.Games)
+                    .ThenInclude(s => s.Games)
+                        .ThenInclude(g => g.Points)
                 .FirstOrDefaultAsync(m => m.Id == matchId);
         }
+
+        public async Task<Match?> GetFullMatchByIdAsync(Guid matchId)
+        {
+            return await _context.Matches
+                .Include(m => m.Player1)
+                .Include(m => m.Player2)
+                .Include(m => m.Winner)
+                .Include(m => m.Tournament)
+                    .ThenInclude(t => t!.MatchFormat)
+                .Include(m => m.Sets)
+                    .ThenInclude(s => s.Games)
+                        .ThenInclude(g => g.Points)
+                .FirstOrDefaultAsync(m => m.Id == matchId);
+        }
+
+        public async override Task<IEnumerable<Match>> GetAllAsync()
+        {
+            return await _context.Matches
+                .Include(m => m.Player1)
+                .Include(m => m.Player2)
+                .Include(m => m.Winner)
+                .Include(m => m.Sets)
+                    .ThenInclude(s => s.Games)
+                        .ThenInclude(g => g.Points)
+                .Include(m => m.Tournament)
+                    .ThenInclude(t => t!.MatchFormat)
+                .ToListAsync();
+        }   
     }
 }

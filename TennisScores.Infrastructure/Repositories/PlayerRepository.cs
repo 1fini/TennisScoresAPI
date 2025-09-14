@@ -5,15 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 
 namespace TennisScores.Infrastructure.Repositories;
-public class PlayerRepository : Repository<Player>, IPlayerRepository
+public class PlayerRepository(TennisDbContext context) : Repository<Player>(context), IPlayerRepository
 {
-    private readonly TennisDbContext _context;
-
-    public PlayerRepository(TennisDbContext context) : base(context)
-    {
-        _context = context;
-    }
-
     public async Task<Player?> GetByFullNameAsync(string firstName, string lastName)
     {
         return await _context.Players
