@@ -7,4 +7,5 @@ public interface IPlayerRepository : IRepository<Player>
 {
     Task<Player?> GetByFullNameAsync(string firstName, string lastName);
     Task<Player> GetOrCreateAsync(string firstName, string lastName);
+    Task<IEnumerable<Player>> SearchByNamePatternAsync(string namePattern);
 }

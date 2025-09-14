@@ -39,4 +39,11 @@ public class PlayersController : ControllerBase
         var players = await _playerService.GetAllAsync();
         return Ok(players);
     }
+
+    [HttpGet("search")]
+    public async Task<ActionResult<IEnumerable<PlayerDto>>> SearchPlayers([FromQuery] string name)
+    {
+        var players = await _playerService.SearchPlayersByNamePatternAsync(name);
+        return Ok(players);
+    }
 }

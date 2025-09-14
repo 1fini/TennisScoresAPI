@@ -41,4 +41,9 @@ public class PlayerService : IPlayerService
     {
         return await _playerRepository.GetAllAsync();
     }
+
+    public async Task<IEnumerable<PlayerLightDto>> SearchPlayersByNamePatternAsync(string name)
+    {
+        return (await _playerRepository.SearchByNamePatternAsync(name)).Select(p => p.ToLightDto());
+    }
 }
