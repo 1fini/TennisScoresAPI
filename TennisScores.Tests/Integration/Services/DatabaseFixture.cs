@@ -43,6 +43,7 @@ public class DatabaseFixture : IDisposable
 
         context.Players.Add(new Player
         {
+
             FirstName = "Carlos",
             LastName = "Alcaraz",
             Nationality = "Spanish",

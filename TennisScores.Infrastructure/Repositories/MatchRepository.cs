@@ -51,5 +51,19 @@ namespace TennisScores.Infrastructure.Repositories
                         .ThenInclude(g => g.Points)
                 .FirstOrDefaultAsync(m => m.Id == matchId);
         }
+
+        public async override Task<IEnumerable<Match>> GetAllAsync()
+        {
+            return await _context.Matches
+                .Include(m => m.Player1)
+                .Include(m => m.Player2)
+                .Include(m => m.Winner)
+                .Include(m => m.Sets)
+                    .ThenInclude(s => s.Games)
+                        .ThenInclude(g => g.Points)
+                .Include(m => m.Tournament)
+                    .ThenInclude(t => t!.MatchFormat)
+                .ToListAsync();
+        }   
     }
 }

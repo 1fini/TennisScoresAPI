@@ -21,12 +21,7 @@ public class MatchService(
     public async Task<MatchDto> CreateMatchAsync(CreateMatchRequest request)
     {
         // Data validation
-        if (string.IsNullOrWhiteSpace(request.Player1FirstName) || string.IsNullOrWhiteSpace(request.Player1LastName) ||
-            string.IsNullOrWhiteSpace(request.Player2FirstName) || string.IsNullOrWhiteSpace(request.Player2LastName))
-        {
-            throw new ArgumentException("Player names cannot be empty.");
-        }
-        if (request.Player1FirstName == request.Player2FirstName && request.Player1LastName == request.Player2LastName)
+        if (request.Player1Id == request.Player2Id)
         {
             throw new ArgumentException("Players cannot be the same.");
         }
@@ -34,39 +29,32 @@ public class MatchService(
         {
             throw new ArgumentOutOfRangeException(nameof(request.BestOfSets), "BestOfSets must be between 1 and 5.");
         }
-        if (string.IsNullOrWhiteSpace(request.ServingPlayerLastName))
-        {
-            throw new ArgumentException("Serving player last name cannot be empty.");
-        }
-
-        var player1 = await _playerRepository.GetOrCreateAsync(request.Player1FirstName, request.Player1LastName);
-        var player2 = await _playerRepository.GetOrCreateAsync(request.Player2FirstName, request.Player2LastName);
-
-        // Vérification de l'existence du joueur servant
-        var servingPlayer = await _playerRepository.GetByFullNameAsync(
-            request.ServingPlayerFirstName,
-            request.ServingPlayerLastName) ?? throw new ArgumentException($"Serving player '{request.ServingPlayerFirstName} {request.ServingPlayerLastName}' not found.");
-        if (servingPlayer.Id != player1.Id && servingPlayer.Id != player2.Id)
+        if (request.ServingPlayer != request.Player1Id && request.ServingPlayer != request.Player2Id)
         {
             throw new ArgumentException("Serving player must be one of the match participants.");
         }
+
+        var player1 = await _playerRepository.GetByIdAsync(request.Player1Id) ?? throw new ArgumentException($"Player 1 with ID '{request.Player1Id}' not found.");
+        var player2 = await _playerRepository.GetByIdAsync(request.Player2Id) ?? throw new ArgumentException($"Player 2 with ID '{request.Player2Id}' not found.");
+        var servingPlayer = request.ServingPlayer == player1.Id ? player1 : player2;
+
         // Tournament
         Tournament? tournament = null;
-        if (request.TournmentId == null && !string.IsNullOrWhiteSpace(request.TournamentName) && request.TournamentStartDate != null)
+        if (request.TournamentId != null && request.TournamentId.HasValue)
         {
-            tournament = await _tournamentRepository.GetByNameAndStartDateAsync(request.TournamentName!, request.TournamentStartDate!.Value);
+            tournament = await _tournamentRepository.GetByIdAsync(request.TournamentId.Value);
 
             if (tournament == null)
             {
-                throw new ArgumentException($"Tournament with name '{request.TournamentName}' and start date '{request.TournamentStartDate}' not found.");
+                throw new ArgumentException($"Tournament with ID '{request.TournamentId}' not found.");
             }
         }
-        else if (request.TournmentId != null)
+        else
         {
-            tournament = await _tournamentRepository.GetByIdAsync(request.TournmentId.Value);
-            if (tournament == null)
+            // If no tournament is specified, ensure BestOfSets is provided
+            if (request.BestOfSets < 1 || request.BestOfSets > 5)
             {
-                throw new ArgumentException($"Tournament with ID '{request.TournmentId}' not found.");
+                throw new ArgumentOutOfRangeException(nameof(request.BestOfSets), "BestOfSets must be between 1 and 5 when no tournament is specified.");
             }
         }
 

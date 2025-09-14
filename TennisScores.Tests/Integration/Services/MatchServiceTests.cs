@@ -145,17 +145,18 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
     public async Task CreateMatchAsync_ShouldCreatePlayersAndMatch_WhenPlayersDoNotExist()
     {
         // Arrange
+        var player1 = _context.Players.FirstOrDefault(p => p.FirstName == "Carlos" && p.LastName == "Alcaraz");
+        var player2 = _context.Players.FirstOrDefault(p => p.FirstName == "Jannik" && p.LastName == "Sinner");
+
+        var tournament = _context.Tournaments.FirstOrDefault(t => t.Name == "US Open" && t.StartDate == new DateTime(2025, 8, 2));
+
         var request = new CreateMatchRequest
         {
-            Player1FirstName = "Carlos",
-            Player1LastName = "Alcaraz",
-            Player2FirstName = "Jannik",
-            Player2LastName = "Sinner",
+            Player1Id = player1?.Id ?? Guid.NewGuid(),
+            Player2Id = player2?.Id ?? Guid.NewGuid(),
             BestOfSets = 3,
-            TournamentName = "US Open",
-            ServingPlayerFirstName = "Carlos",
-            ServingPlayerLastName = "Alcaraz",
-            TournamentStartDate = new DateTime(2025, 8, 2)
+            TournamentId = tournament?.Id,
+            ServingPlayer = player1?.Id ?? Guid.NewGuid(),
         };
 
         // Act
@@ -166,8 +167,6 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         Assert.NotNull(match);
         Assert.Equal(3, match.BestOfSets);
 
-        var player1 = await _context.Players.FindAsync(match.Player1Id);
-        var player2 = await _context.Players.FindAsync(match.Player2Id);
         Assert.NotNull(player1);
         Assert.NotNull(player2);
         Assert.Equal("Carlos", player1.FirstName);
@@ -175,7 +174,6 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         Assert.Equal("Jannik", player2.FirstName);
         Assert.Equal("Sinner", player2.LastName);
 
-        var tournament = await _context.Tournaments.FindAsync(match.TournamentId);
         Assert.NotNull(tournament);
         Assert.Equal("US Open", tournament.Name);
         Assert.Equal(new DateTime(2025, 8, 2), tournament.StartDate);
@@ -190,17 +188,14 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         _context.Players.AddRange(player1, player2);
         await _context.SaveChangesAsync();
 
+        var tournamentId = Guid.NewGuid(); // Unknown tournament ID
+
         var request = new CreateMatchRequest
         {
-            Player1FirstName = "Aryna",
-            Player1LastName = "Sabalenka",
-            Player2FirstName = "Iga",
-            Player2LastName = "Swiatek",
-            BestOfSets = 3,
-            ServingPlayerFirstName = "Aryna",
-            ServingPlayerLastName = "Sabalenka",
-            TournamentName = "FakeTournament", // tournoi inexistant
-            TournamentStartDate = new DateTime(2024, 5, 1),
+            Player1Id = player1.Id,
+            Player2Id = player2.Id,
+            ServingPlayer = player1.Id,
+            TournamentId = tournamentId,
         };
 
         // Act
@@ -208,6 +203,6 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>()
-            .WithMessage("Tournament with name 'FakeTournament' and start date * not found.");  
+            .WithMessage($"Tournament with ID '{tournamentId}' not found.");  
     }
 }
