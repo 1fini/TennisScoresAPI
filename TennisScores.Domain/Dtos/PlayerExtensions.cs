@@ -7,7 +7,7 @@ namespace TennisScores.Domain.Dtos
             Id = player.Id,
             FirstName = player.FirstName,
             LastName = player.LastName,
-            Age = player.Age
+            Age = player.BirthDate == DateTime.MinValue ? null : (int?)(DateTime.Now.Year - player.BirthDate?.Year),
         };
     }
 }

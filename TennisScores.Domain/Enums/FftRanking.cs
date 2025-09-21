@@ -56,7 +56,6 @@ public enum FftRanking
     QuinzeTrois,  // 15/3
     QuinzeDeux,   // 15/2
     QuinzeUn,    // 15/1
-
     Quinze,     // 15 (2e série)
     CinqSix,    // 5/6
     QuatreSix,  // 4/6

@@ -18,7 +18,7 @@ public class Player
 
     public string? Nationality { get; set; }
 
-    public int? Age { get; set; }
+    public DateTime? BirthDate { get; set; } 
 
     public ICollection<Match> MatchesAsPlayer1 { get; set; } = new List<Match>();
     public ICollection<Match> MatchesAsPlayer2 { get; set; } = new List<Match>();
