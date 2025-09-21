@@ -9,7 +9,7 @@ namespace TennisScores.API.Services;
 public interface IPlayerService
 {
     Task<Guid> CreatePlayerAsync(CreatePlayerRequest request);
-    Task<Player?> GetByIdAsync(Guid id);
-    Task<IEnumerable<Player>> GetAllAsync();
+    Task<PlayerLightDto?> GetByIdAsync(Guid id);
+    Task<IEnumerable<PlayerLightDto>> GetAllAsync();
     Task<IEnumerable<PlayerLightDto>> SearchPlayersByNamePatternAsync(string name);
 }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TennisScores.API.Services;
 using TennisScores.Domain.Dtos;
+using TennisScores.Domain.Entities;
 
 namespace TennisScores.API.Controllers;
 
@@ -26,6 +27,8 @@ public class PlayersController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PlayerLightDto))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var player = await _playerService.GetByIdAsync(id);
@@ -34,6 +37,7 @@ public class PlayersController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<PlayerLightDto>))]
     public async Task<IActionResult> GetAll()
     {
         var players = await _playerService.GetAllAsync();
@@ -41,7 +45,8 @@ public class PlayersController : ControllerBase
     }
 
     [HttpGet("search")]
-    public async Task<ActionResult<IEnumerable<PlayerDto>>> SearchPlayers([FromQuery] string name)
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<PlayerLightDto>))]
+    public async Task<ActionResult> SearchPlayers([FromQuery] string name)
     {
         var players = await _playerService.SearchPlayersByNamePatternAsync(name);
         return Ok(players);
