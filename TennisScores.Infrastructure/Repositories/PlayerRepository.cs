@@ -3,8 +3,8 @@ using TennisScores.Domain.Repositories;
 using TennisScores.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace TennisScores.Infrastructure.Repositories;
+
 public class PlayerRepository(TennisDbContext context) : Repository<Player>(context), IPlayerRepository
 {
     public async Task<Player?> GetByFullNameAsync(string firstName, string lastName)
@@ -30,5 +30,23 @@ public class PlayerRepository(TennisDbContext context) : Repository<Player>(cont
 
         await AddAsync(player);
         return player;
+    }
+    
+    public async Task<IEnumerable<Player>> SearchByNamePatternAsync(string namePattern)
+    {
+        return await _context.Players
+            .Where(p => p.LastName.ToLower().StartsWith(namePattern.ToLower()) ||
+                        p.FirstName.ToLower().StartsWith(namePattern.ToLower()))
+            .OrderBy(p => p.LastName)
+            .ThenBy(p => p.FirstName)
+            .Take(10)
+            .Select( p => new Player
+            {
+                Id = p.Id,
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                BirthDate = p.BirthDate
+            })
+            .ToListAsync();
     }
 }

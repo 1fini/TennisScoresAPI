@@ -21,7 +21,7 @@ public class PlayerService : IPlayerService
         {
             FirstName = request.FirstName,
             LastName = request.LastName,
-            Age = request.Age,
+            BirthDate = request.Birthdate ?? null,
             Nationality = request.Nationality,
             FftRanking = request.FftRanking
         };
@@ -32,13 +32,18 @@ public class PlayerService : IPlayerService
         return player.Id;
     }
 
-    public async Task<Player?> GetByIdAsync(Guid id)
+    public async Task<PlayerLightDto?> GetByIdAsync(Guid id)
     {
-        return await _playerRepository.GetByIdAsync(id);
+        return (await _playerRepository.GetByIdAsync(id))?.ToLightDto();
     }
 
-    public async Task<IEnumerable<Player>> GetAllAsync()
+    public async Task<IEnumerable<PlayerLightDto>> GetAllAsync()
     {
-        return await _playerRepository.GetAllAsync();
+        return (await _playerRepository.GetAllAsync()).Select(p => p.ToLightDto());
+    }
+
+    public async Task<IEnumerable<PlayerLightDto>> SearchPlayersByNamePatternAsync(string name)
+    {
+        return (await _playerRepository.SearchByNamePatternAsync(name)).Select(p => p.ToLightDto());
     }
 }

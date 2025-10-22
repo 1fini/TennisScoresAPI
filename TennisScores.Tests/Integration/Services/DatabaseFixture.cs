@@ -38,7 +38,7 @@ public class DatabaseFixture : IDisposable
             LastName = "Sinner",
             FftRanking = Domain.Enums.FftRanking.Top20DamesTop30Messieurs, //TODO create ATP rankins for top world players
             Nationality = "Italian",
-            Age = 23
+            BirthDate = new DateTime(2001, 8, 16)
         });
 
         context.Players.Add(new Player
@@ -47,7 +47,7 @@ public class DatabaseFixture : IDisposable
             FirstName = "Carlos",
             LastName = "Alcaraz",
             Nationality = "Spanish",
-            Age = 21
+            BirthDate = new DateTime(2003, 5, 5)
         });
 
         context.SaveChanges();
