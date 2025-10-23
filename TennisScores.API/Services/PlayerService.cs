@@ -17,11 +17,18 @@ public class PlayerService : IPlayerService
 
     public async Task<Guid> CreatePlayerAsync(CreatePlayerRequest request)
     {
+        DateTime? normalizedBirthdate = null;
+
+        if (request.Birthdate.HasValue)
+        {
+            var dto = request.Birthdate.Value;
+            normalizedBirthdate = dto.ToUniversalTime();
+        }
         var player = new Player
         {
             FirstName = request.FirstName,
             LastName = request.LastName,
-            BirthDate = request.Birthdate ?? null,
+            BirthDate = normalizedBirthdate,
             Nationality = request.Nationality,
             FftRanking = request.FftRanking
         };
