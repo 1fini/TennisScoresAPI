@@ -51,4 +51,15 @@ public class PlayersController : ControllerBase
         var players = await _playerService.SearchPlayersByNamePatternAsync(name);
         return Ok(players);
     }
+
+    [HttpDelete]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(bool))]
+    public async Task<ActionResult> DeletePlayers(Guid id)
+    {
+        var res = await _playerService.DeletePlayer(id);
+        return Ok(res);
+    }
+
+
+
 }
