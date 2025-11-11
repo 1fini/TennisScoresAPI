@@ -59,7 +59,4 @@ public class PlayersController : ControllerBase
         var res = await _playerService.DeletePlayer(id);
         return Ok(res);
     }
-
-
-
 }
