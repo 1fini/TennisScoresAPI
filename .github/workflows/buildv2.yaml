@@ -88,11 +88,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.repository_owner == '1fini'
 
-    env:
-      DOCKER_IMAGE_NAME: DOCKER_IMAGE_NAME
-      DOCKERHUB_USERNAME: ${{ vars.DH_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -100,8 +95,8 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
-          username: DOCKERHUB_USERNAME
-          password: DOCKERHUB_TOKEN
+          username: ${{ vars.DH_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image
         run: docker build -t $DOCKER_IMAGE_NAME:latest .
