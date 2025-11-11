@@ -53,4 +53,17 @@ public class PlayerService : IPlayerService
     {
         return (await _playerRepository.SearchByNamePatternAsync(name)).Select(p => p.ToLightDto());
     }
+
+    public async Task<bool> DeletePlayer(Guid id)
+    {
+        var player = await _playerRepository.GetByIdAsync(id);
+
+        if (player != null)
+        {
+            _playerRepository.Remove(player);
+            await _unitOfWork.SaveChangesAsync();
+            return true;
+        }
+        else return false;
+    }
 }
