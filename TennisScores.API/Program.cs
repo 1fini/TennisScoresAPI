@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using TennisScores.API.Hubs;
 using TennisScores.API.Services;
 using TennisScores.Domain;
