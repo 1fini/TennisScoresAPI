@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using TennisScores.API.Hubs;
 using TennisScores.API.Services;
 using TennisScores.Domain;
@@ -43,11 +44,14 @@ internal class Program
         });
 
         builder.Services.AddDbContext<TennisDbContext>(options =>
-                options.UseNpgsql($"Host={builder.Configuration["DB_HOST"]};" +
-                    $"Port={builder.Configuration["DB_PORT"]};" +
-                    $"Database={builder.Configuration["DB_NAME"]};" +
-                    $"Username={builder.Configuration["DB_USER"]};" +
-                    $"Password={builder.Configuration["DB_PASSWORD"]};"));
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+        //builder.Services.AddDbContext<TennisDbContext>(options =>
+        //        options.UseNpgsql($"Host={builder.Configuration["DB_HOST"]};" +
+        //            $"Port={builder.Configuration["DB_PORT"]};" +
+        //            $"Database={builder.Configuration["DB_NAME"]};" +
+        //            $"Username={builder.Configuration["DB_USER"]};" +
+        //            $"Password={builder.Configuration["DB_PASSWORD"]};"));
 
         builder.Services.AddScoped<IMatchRepository, MatchRepository>();
         builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
