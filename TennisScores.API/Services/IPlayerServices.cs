@@ -12,4 +12,5 @@ public interface IPlayerService
     Task<PlayerLightDto?> GetByIdAsync(Guid id);
     Task<IEnumerable<PlayerLightDto>> GetAllAsync();
     Task<IEnumerable<PlayerLightDto>> SearchPlayersByNamePatternAsync(string name);
+    Task<bool> DeletePlayer(Guid id);
 }
