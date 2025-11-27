@@ -20,10 +20,11 @@ public class PlayersController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Guid))]
     public async Task<IActionResult> Create([FromBody] CreatePlayerRequest request)
     {
         var id = await _playerService.CreatePlayerAsync(request);
-        return CreatedAtAction(nameof(GetById), new { id }, new { Id = id });
+        return CreatedAtAction(nameof(GetById), new { id }, id);//new { Id = id });
     }
 
     [HttpGet("{id}")]
