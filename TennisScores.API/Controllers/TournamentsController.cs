@@ -16,11 +16,11 @@ public class TournamentsController : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(TournamentDto))]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(Guid))]
     public async Task<IActionResult> Create([FromBody] CreateTournamentRequest request)
     {
         var tournament = await _tournamentService.CreateTournamentAsync(request);
-        return CreatedAtAction(nameof(GetById), new {id = tournament.Id}, tournament);
+        return CreatedAtAction(nameof(GetById), new {tournament.Id}, tournament.Id);
     }
 
     [HttpGet("{id}")]
@@ -39,5 +39,13 @@ public class TournamentsController : ControllerBase
     {
         var tournaments = await _tournamentService.GetAllAsync();
         return tournaments;
+    }
+
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(bool))]
+    public async Task<ActionResult> DeleteTournament(Guid id)
+    {
+        var res = await _tournamentService.DeleteTournament(id);
+        return Ok(res); 
     }
 }
