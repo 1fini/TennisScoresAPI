@@ -22,8 +22,8 @@ public class TournamentService : ITournamentService
         {
             Name = request.Name,
             Location = request.Location,
-            StartDate = request.StartDate,
-            EndDate = request.EndDate,
+            StartDate = request.StartDate.ToUniversalTime(),
+            EndDate = request.EndDate.ToUniversalTime(),
             Description = request.Description,
             MinRankingFft = request.MinRankingFft,
             MaxRankingFft = request.MaxRankingFft,
@@ -54,5 +54,18 @@ public class TournamentService : ITournamentService
     public async Task<IEnumerable<TournamentDto>> GetAllAsync()
     {
         return (await _tournamentRepository.GetAllAsync()).Select(t => t.ToDetailedDto());
+    }
+
+    public async Task<bool> DeleteTournament(Guid id)
+    {
+        var tournament = await _tournamentRepository.GetByIdAsync(id);
+
+        if (tournament != null)
+        {
+            _tournamentRepository.Remove(tournament);
+            await _unitOfWork.SaveChangesAsync();
+            return true;
+        }
+        else return false;
     }
 }
