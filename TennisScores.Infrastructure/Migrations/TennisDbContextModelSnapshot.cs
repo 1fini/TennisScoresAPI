@@ -17,7 +17,7 @@ namespace TennisScores.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -57,7 +57,7 @@ namespace TennisScores.Infrastructure.Migrations
 
                     b.HasIndex("WinnerId");
 
-                    b.ToTable("Games");
+                    b.ToTable("Games", (string)null);
                 });
 
             modelBuilder.Entity("TennisScores.Domain.Entities.Match", b =>
@@ -111,7 +111,7 @@ namespace TennisScores.Infrastructure.Migrations
 
                     b.HasIndex("WinnerId");
 
-                    b.ToTable("Matches");
+                    b.ToTable("Matches", (string)null);
                 });
 
             modelBuilder.Entity("TennisScores.Domain.Entities.MatchFormat", b =>
@@ -153,7 +153,7 @@ namespace TennisScores.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("MatchFormats");
+                    b.ToTable("MatchFormats", (string)null);
 
                     b.HasData(
                         new
@@ -274,7 +274,7 @@ namespace TennisScores.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Players");
+                    b.ToTable("Players", (string)null);
                 });
 
             modelBuilder.Entity("TennisScores.Domain.Entities.Point", b =>
@@ -304,7 +304,7 @@ namespace TennisScores.Infrastructure.Migrations
 
                     b.HasIndex("WinnerId");
 
-                    b.ToTable("Points");
+                    b.ToTable("Points", (string)null);
                 });
 
             modelBuilder.Entity("TennisScores.Domain.Entities.TennisSet", b =>
@@ -339,7 +339,7 @@ namespace TennisScores.Infrastructure.Migrations
 
                     b.HasIndex("WinnerId");
 
-                    b.ToTable("Sets");
+                    b.ToTable("Sets", (string)null);
                 });
 
             modelBuilder.Entity("TennisScores.Domain.Entities.Tournament", b =>
@@ -411,7 +411,7 @@ namespace TennisScores.Infrastructure.Migrations
                     b.HasIndex("Name", "StartDate")
                         .IsUnique();
 
-                    b.ToTable("Tournaments");
+                    b.ToTable("Tournaments", (string)null);
                 });
 
             modelBuilder.Entity("TennisScores.Domain.Entities.Game", b =>
