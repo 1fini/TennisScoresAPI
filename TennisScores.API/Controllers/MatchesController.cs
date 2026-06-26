@@ -53,5 +53,13 @@ namespace TennisScoresAPI.Controllers
             var matches = await _matchService.GetAllAsync();
             return Ok(matches);
         }
+
+        [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(bool))]
+        public async Task<IActionResult> DeleteMatch(Guid id)
+        {
+            var deleted = await _matchService.DeleteMatchAsync(id);
+            return Ok(deleted);
+        }
     }
 }

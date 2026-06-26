@@ -101,5 +101,19 @@ public class MatchService(
         var matches = await _matchRepository.GetAllAsync();
 
         return [.. matches.Select(m => m.MapToMatchDto())];
-    } 
+    }
+
+    public async Task<bool> DeleteMatchAsync(Guid matchId)
+    {
+        var match = await _matchRepository.GetByIdAsync(matchId);
+
+        if (match == null)
+        {
+            return false;
+        }
+
+        _matchRepository.Remove(match);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
 }
