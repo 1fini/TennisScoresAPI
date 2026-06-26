@@ -23,6 +23,8 @@ namespace TennisScoresAPI.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(MatchDto))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateMatch([FromBody] CreateMatchRequest request)
         {
             if (!ModelState.IsValid)
