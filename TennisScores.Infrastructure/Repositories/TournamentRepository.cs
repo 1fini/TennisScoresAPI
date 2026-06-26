@@ -19,12 +19,6 @@ public class TournamentRepository(TennisDbContext context) : Repository<Tourname
     {
         return await _context.Tournaments
             .Include(t => t.MatchFormat)
-            .Include(t => t.Matches)
-                .ThenInclude(m => m.Player1)
-            .Include(t => t.Matches)
-                .ThenInclude(m => m.Player2)
-            .Include(t => t.Matches)
-                .ThenInclude(m => m.Winner)
             .ToListAsync();
     }
 
@@ -50,4 +44,3 @@ public class TournamentRepository(TennisDbContext context) : Repository<Tourname
         throw new NotImplementedException();
     }
 }
-

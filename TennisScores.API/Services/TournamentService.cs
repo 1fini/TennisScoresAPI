@@ -53,7 +53,7 @@ public class TournamentService : ITournamentService
 
     public async Task<IEnumerable<TournamentDto>> GetAllAsync()
     {
-        return (await _tournamentRepository.GetAllAsync()).Select(t => t.ToDetailedDto());
+        return (await _tournamentRepository.GetAllAsync()).Select(t => t.ToListDto());
     }
 
     public async Task<bool> DeleteTournament(Guid id)

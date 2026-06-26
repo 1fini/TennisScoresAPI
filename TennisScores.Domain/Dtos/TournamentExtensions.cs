@@ -4,7 +4,7 @@ namespace TennisScores.Domain.Dtos;
 
 public static class TournamentExtensions
 {
-/*     public static TournamentDto ToDto(this Tournament t)
+    public static TournamentDto ToListDto(this Tournament t)
     {
         if (t == null) return null!;
 
@@ -33,10 +33,9 @@ public static class TournamentExtensions
             Surface = t.Surface,
             Condition = t.Condition,
             PrizeMoney = t.PrizeMoney,
-            PrizeMoneyCurrency = t.PrizeMoneyCurrency,
-            Matches = t.Matches.Select(m => m.MapToMatchDto()).ToList() ?? []
+            PrizeMoneyCurrency = t.PrizeMoneyCurrency
         };
-    } */
+    }
     
     public static TournamentDto ToDetailedDto(this Tournament t)
     {
