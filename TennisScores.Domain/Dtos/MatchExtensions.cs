@@ -79,7 +79,7 @@ public static class MatchExtensions
             WinnerLastName = match.Winner?.LastName,
             StartTime = match.StartTime,
             EndTime = match.EndTime,
-            BestOfSets = match.BestOfSets,
+            BestOfSets = GetBestOfSets(match),
             Surface = match.Surface,
             TournamentName = match.Tournament?.Name,
             TournamentStartDate = match.Tournament?.StartDate,
@@ -109,7 +109,7 @@ public static class MatchExtensions
             Player1LastName = match.Player1?.LastName ?? "",
             Player2FirstName = match.Player2?.FirstName ?? "",
             Player2LastName = match.Player2?.LastName ?? "",
-            BestOfSets = match.BestOfSets,
+            BestOfSets = GetBestOfSets(match),
             StartTime = match.StartTime,
             EndTime = match.EndTime,
             WinnerFirstName = match.Winner?.FirstName,
@@ -172,7 +172,7 @@ public static class MatchExtensions
         if (format == null || !format.TieBreakEnabled)
             return false;
 
-        if (format.SuperTieBreakForFinalSet && set.SetNumber == match.BestOfSets)
+        if (format.SuperTieBreakForFinalSet && IsFinalSet(match, set))
             return true;
 
         var completedGames = set.Games.Where(g => g.IsCompleted).ToList();
@@ -184,6 +184,14 @@ public static class MatchExtensions
             player2Games == format.GamesPerSet &&
             game.GameNumber == completedGames.Count + 1;
     }
+
+    private static int GetBestOfSets(Match match)
+        => match.Tournament?.MatchFormat == null
+            ? match.BestOfSets
+            : (match.Tournament.MatchFormat.SetsToWin * 2) - 1;
+
+    private static bool IsFinalSet(Match match, TennisSet set)
+        => set.SetNumber == GetBestOfSets(match);
 
     private static string FormatGameScore(int pointsFor, int pointsAgainst)
     {

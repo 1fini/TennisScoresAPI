@@ -128,7 +128,7 @@ public class LiveScoreService(
         if (currentSet != null)
             return currentSet;
 
-        if (match.Sets.Count >= match.BestOfSets)
+        if (match.Sets.Count >= GetBestOfSets(match))
             throw new InvalidOperationException("Sets count is greater than the match format allows.");
 
         currentSet = new TennisSet
@@ -237,7 +237,7 @@ public class LiveScoreService(
         }
 
         // 🎯 Cas 3 : super tie-break dans le set décisif (dernier set du match)
-        if (matchFormat.SuperTieBreakForFinalSet && set.SetNumber == match.BestOfSets)
+        if (matchFormat.SuperTieBreakForFinalSet && IsFinalSet(match, set))
         {
             var lastGame = set.Games.LastOrDefault();
             if (lastGame is not null && lastGame.IsTiebreak)
@@ -255,7 +255,7 @@ public class LiveScoreService(
         var player1SetWins = match.Sets.Count(s => s.IsCompleted && s.WinnerId == match.Player1Id);
         var player2SetWins = match.Sets.Count(s => s.IsCompleted && s.WinnerId == match.Player2Id);
 
-        var setsNeededToWin = (match.BestOfSets / 2) + 1;
+        var setsNeededToWin = GetSetsToWin(match);
 
         if (player1SetWins >= setsNeededToWin)
         {
@@ -308,8 +308,17 @@ public class LiveScoreService(
         if (!matchFormat.SuperTieBreakForFinalSet)
             return false;
 
-        return set.SetNumber == match.BestOfSets;
+        return IsFinalSet(match, set);
     }
+
+    private static int GetSetsToWin(Match match)
+        => match.Tournament!.MatchFormat.SetsToWin;
+
+    private static int GetBestOfSets(Match match)
+        => (GetSetsToWin(match) * 2) - 1;
+
+    private static bool IsFinalSet(Match match, TennisSet set)
+        => set.SetNumber == GetBestOfSets(match);
 
     private void SwitchServer(Match match)
     {

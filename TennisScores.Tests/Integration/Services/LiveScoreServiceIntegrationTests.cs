@@ -71,6 +71,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         {
             Player1Id = player1,
             Player2Id = player2,
+            BestOfSets = 2,
             Sets = [],
             Tournament = tournament,
             TournamentId = tournament.Id
