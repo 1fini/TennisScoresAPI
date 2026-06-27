@@ -1,4 +1,3 @@
-using System.Data;
 using Microsoft.AspNetCore.SignalR;
 using TennisScores.Domain;
 using TennisScores.Domain.Dtos;
@@ -31,130 +30,143 @@ public class LiveScoreService(
         Guid winnerId,
         PointType pointType)
     {
-        try
+        var match = await _matchRepository.GetFullMatchByIdAsync(matchId) ??
+            throw new ArgumentException("Match does not exist");
+
+        var format = ValidatePointCanBeAdded(match, winnerId);
+        var currentSet = await GetOrCreateCurrentSetAsync(match);
+        var currentGame = await GetOrCreateCurrentGameAsync(match, currentSet);
+
+        var point = new Point
         {
-            var match = await _matchRepository.GetFullMatchByIdAsync(matchId) ??
-                throw new ArgumentException("Match does not exist");
+            WinnerId = winnerId,
+            Winner = match.Player1Id == winnerId ? match.Player1 : match.Player2,
+            PointType = pointType,
+            Timestamp = DateTime.UtcNow
+        };
+        currentGame.Points.Add(point);
+        await _pointRepository.AddAsync(point);
 
-            var format = match.Tournament?.MatchFormat ?? throw new ArgumentException("Match Format not found");
+        var isGameOver = CheckGameIsOver(currentGame, match);
+        if (currentGame.IsTiebreak)
+        {
+            UpdateServerAfterTieBreakPoint(match, currentGame);
+        }
 
-            // Get the current set or create a new one
-            var currentSet = match.Sets
-                .Where(s => !s.IsCompleted)
-                .OrderBy(s => s.SetNumber)
-                .LastOrDefault();
+        if (isGameOver)
+        {
+            currentGame.IsCompleted = true;
+            currentGame.WinnerId = winnerId;
+            _gameRepository.Update(currentGame);
 
-            if (currentSet == null)
+            if (!currentGame.IsTiebreak)
             {
-                currentSet = new TennisSet
-                {
-                    MatchId = match.Id,
-                    Match = match,
-                    SetNumber = match.Sets.Count + 1,
-                    Games = []
-                };
-                if (match.Sets.Count >= match.Tournament.MatchFormat.GamesPerSet)
-                    throw new InvalidOperationException("Sets count is greater thant MatchFormat defines");
-
-                match.Sets.Add(currentSet);
-                await _setRepository.AddAsync(currentSet);
+                SwitchServer(match);
             }
 
-            // Get the current Game or create one
-            var currentGame = currentSet.Games
-                .OrderByDescending(g => g.GameNumber)
-                .FirstOrDefault(g => !g.IsCompleted);
-
-            if (currentGame == null)
+            if (CheckSetIsOver(currentSet, match, format))
             {
-                currentGame = new Game
+                currentSet.IsCompleted = true;
+                currentSet.WinnerId = winnerId;
+
+                _gameRepository.Update(currentGame);
+                if (CheckMatchIsOver(match))
+                {
+                    match.IsCompleted = true;
+                    match.WinnerId = winnerId;
+                }
+                else
+                {
+                    var nextSet = new TennisSet
+                    {
+                        MatchId = match.Id,
+                        Match = match,
+                        SetNumber = match.Sets.Count + 1,
+                        Games = []
+                    };
+                    match.Sets.Add(nextSet);
+                    await _setRepository.AddAsync(nextSet);
+                }
+            }
+            else
+            {
+                var newGame = new Game
                 {
                     SetId = currentSet.Id,
                     Set = currentSet,
                     GameNumber = currentSet.Games.Count + 1,
-                    IsTiebreak = IsTiebreakNeeded(currentSet) || IsFinalSetSuperTieBreak(match, currentSet),
-                    Points = []
+                    IsTiebreak = IsTiebreakNeeded(currentSet) || IsFinalSetSuperTieBreak(match, currentSet)
                 };
 
-                currentSet.Games.Add(currentGame);
-                await _gameRepository.AddAsync(currentGame);
+                currentSet.Games.Add(newGame);
+                await _gameRepository.AddAsync(newGame);
             }
-
-            // Add Point in Current Game
-            var point = new Point
-            {
-                WinnerId = winnerId,
-                Winner = match.Player1Id == winnerId ? match.Player1 : match.Player2,
-                PointType = pointType,
-                Timestamp = DateTime.UtcNow
-            };
-            currentGame.Points.Add(point);
-            await _pointRepository.AddAsync(point);
-
-
-            // Is game completed?
-            if (CheckGameIsOver(currentGame, match))
-            {
-                currentGame.IsCompleted = true;
-                currentGame.WinnerId = winnerId;
-                _gameRepository.Update(currentGame);
-
-                SwitchServer(match);
-
-                // Is Set Completed?
-                if (CheckSetIsOver(currentSet, match, format))
-                {
-                    currentSet.IsCompleted = true;
-                    currentSet.WinnerId = winnerId;
-
-                    _gameRepository.Update(currentGame);
-                    // Is Match Over?
-                    if (CheckMatchIsOver(match))
-                    {
-                        match.IsCompleted = true;
-                        match.WinnerId = winnerId;
-                    }
-                    else
-                    {
-                        // New Set
-                        var nextSet = new TennisSet
-                        {
-                            MatchId = match.Id,
-                            Match = match,
-                            SetNumber = match.Sets.Count + 1,
-                            Games = []
-                        };
-                        match.Sets.Add(nextSet);
-                        await _setRepository.AddAsync(nextSet);
-                    }
-                }
-                else
-                {
-                    // New Game in same Set
-                    var newGame = new Game
-                    {
-                        SetId = currentSet.Id,
-                        Set = currentSet,
-                        GameNumber = currentSet.Games.Count + 1,
-                        IsTiebreak = IsTiebreakNeeded(currentSet) || IsFinalSetSuperTieBreak(match, currentSet)
-                    };
-
-                    currentSet.Games.Add(newGame);
-                    await _gameRepository.AddAsync(newGame);
-                }
-            }
-            await _unitOfWork.SaveChangesAsync();
-
-            //Broadcasting to clients
-            //await _hubContext.Clients.Group(match.Id.ToString()).SendAsync("ReceivePoint", match.MapToFullDto());
-
-            await _hubContext.BroadcastPoint(match.MapToFullDto());
         }
-        catch (Exception ex)
+
+        await _unitOfWork.SaveChangesAsync();
+        await _hubContext.BroadcastPoint(match.MapToFullDto());
+    }
+
+    private MatchFormat ValidatePointCanBeAdded(Match match, Guid winnerId)
+    {
+        if (match.IsCompleted)
+            throw new InvalidOperationException("Cannot add a point to a completed match.");
+
+        if (winnerId != match.Player1Id && winnerId != match.Player2Id)
+            throw new ArgumentException("Point winner must be one of the match participants.", nameof(winnerId));
+
+        return match.Tournament?.MatchFormat ?? throw new ArgumentException("Match Format not found");
+    }
+
+    private async Task<TennisSet> GetOrCreateCurrentSetAsync(Match match)
+    {
+        var currentSet = match.Sets
+            .Where(s => !s.IsCompleted)
+            .OrderBy(s => s.SetNumber)
+            .LastOrDefault();
+
+        if (currentSet != null)
+            return currentSet;
+
+        if (match.Sets.Count >= match.BestOfSets)
+            throw new InvalidOperationException("Sets count is greater than the match format allows.");
+
+        currentSet = new TennisSet
         {
-            // Retry the operation after resolving the concurrency conflict
-            throw new InvalidOperationException("An error occurred while adding a point to the match.", ex);
-        }
+            MatchId = match.Id,
+            Match = match,
+            SetNumber = match.Sets.Count + 1,
+            Games = []
+        };
+
+        match.Sets.Add(currentSet);
+        await _setRepository.AddAsync(currentSet);
+
+        return currentSet;
+    }
+
+    private async Task<Game> GetOrCreateCurrentGameAsync(Match match, TennisSet currentSet)
+    {
+        var currentGame = currentSet.Games
+            .OrderByDescending(g => g.GameNumber)
+            .FirstOrDefault(g => !g.IsCompleted);
+
+        if (currentGame != null)
+            return currentGame;
+
+        currentGame = new Game
+        {
+            SetId = currentSet.Id,
+            Set = currentSet,
+            GameNumber = currentSet.Games.Count + 1,
+            IsTiebreak = IsTiebreakNeeded(currentSet) || IsFinalSetSuperTieBreak(match, currentSet),
+            Points = []
+        };
+
+        currentSet.Games.Add(currentGame);
+        await _gameRepository.AddAsync(currentGame);
+
+        return currentGame;
     }
 
     private static bool CheckGameIsOver(Game game, Match match)
@@ -285,5 +297,14 @@ public class LiveScoreService(
         match.ServingPlayerId = (match.ServingPlayerId == match.Player1Id)
             ? match.Player2Id
             : match.Player1Id;
+    }
+
+    private void UpdateServerAfterTieBreakPoint(Match match, Game game)
+    {
+        var pointsPlayed = game.Points.Count;
+        if (pointsPlayed % 2 == 1)
+        {
+            SwitchServer(match);
+        }
     }
 }
