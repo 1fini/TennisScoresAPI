@@ -1,0 +1,27 @@
+# Build an EF Core migration bundle that can run without the SDK or source code.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+COPY *.sln .
+COPY TennisScores.API/*.csproj ./TennisScores.API/
+COPY TennisScores.Infrastructure/*.csproj ./TennisScores.Infrastructure/
+COPY TennisScores.Domain/*.csproj ./TennisScores.Domain/
+COPY TennisScores.Tests/*.csproj ./TennisScores.Tests/
+RUN dotnet restore
+RUN dotnet tool install --global dotnet-ef --version 10.0.9
+
+COPY . .
+RUN dotnet ef migrations bundle \
+    --project TennisScores.Infrastructure/TennisScores.Infrastructure.csproj \
+    --startup-project TennisScores.API/TennisScores.API.csproj \
+    --configuration Release \
+    --self-contained false \
+    --output /app/migrate
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+COPY --from=build /app/migrate ./migrate
+
+ENTRYPOINT ["./migrate"]

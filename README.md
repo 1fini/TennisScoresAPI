@@ -161,6 +161,16 @@ The API image is intended to run behind the WebApp production compose stack, whe
 http://api:8080/
 ```
 
+### Migration Image
+
+The repository also provides `Dockerfile.migrations`, which builds an EF Core migration bundle image:
+
+```bash
+docker build -f Dockerfile.migrations -t 1fini/tennisscoreapi-migrations:local .
+```
+
+The migration image does not require the .NET SDK or source code on the production server. It runs the compiled EF migration bundle against the database configured with `DB_*` environment variables.
+
 ## GitHub Actions
 
 The main workflow:
@@ -177,6 +187,7 @@ It performs:
 - Docker image build
 - DockerHub publication on push
 - multi-architecture image publication for `linux/amd64` and `linux/arm64`
+- migration image publication as `1fini/tennisscoreapi-migrations`
 
 ## Production Deployment
 
@@ -192,6 +203,7 @@ That compose stack runs:
 - TennisScoreWebApp
 - TennisScoresAPI
 - PostgreSQL
+- optional one-shot database migrations
 
 Only the WebApp is exposed publicly. The API remains internal to Docker networking.
 
