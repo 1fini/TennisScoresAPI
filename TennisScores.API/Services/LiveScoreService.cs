@@ -260,14 +260,18 @@ public class LiveScoreService(
         if (player1SetWins >= setsNeededToWin)
         {
             match.WinnerId = match.Player1Id;
+            match.Winner = match.Player1;
             match.IsCompleted = true;
+            match.EndTime ??= DateTime.UtcNow;
             return true;
         }
 
         if (player2SetWins >= setsNeededToWin)
         {
             match.WinnerId = match.Player2Id;
+            match.Winner = match.Player2;
             match.IsCompleted = true;
+            match.EndTime ??= DateTime.UtcNow;
             return true;
         }
 

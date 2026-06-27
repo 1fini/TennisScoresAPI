@@ -58,6 +58,12 @@ public static class MatchExtensions
     /// <returns></returns>
     public static MatchDetailsDto MapToFullDto(this Match match)
     {
+        var winner = match.WinnerId == match.Player1Id
+            ? match.Player1
+            : match.WinnerId == match.Player2Id
+                ? match.Player2
+                : match.Winner;
+
         var newDto = new MatchDetailsDto
         {
             Id = match.Id,
@@ -75,8 +81,8 @@ public static class MatchExtensions
                 LastName = match.Player2?.LastName ?? ""
             },
             ServingPlayerId = match.ServingPlayerId,
-            WinnerFirstName = match.Winner?.FirstName,
-            WinnerLastName = match.Winner?.LastName,
+            WinnerFirstName = winner?.FirstName,
+            WinnerLastName = winner?.LastName,
             StartTime = match.StartTime,
             EndTime = match.EndTime,
             BestOfSets = GetBestOfSets(match),
@@ -112,8 +118,16 @@ public static class MatchExtensions
             BestOfSets = GetBestOfSets(match),
             StartTime = match.StartTime,
             EndTime = match.EndTime,
-            WinnerFirstName = match.Winner?.FirstName,
-            WinnerLastName = match.Winner?.LastName
+            WinnerFirstName = match.WinnerId == match.Player1Id
+                ? match.Player1?.FirstName
+                : match.WinnerId == match.Player2Id
+                    ? match.Player2?.FirstName
+                    : match.Winner?.FirstName,
+            WinnerLastName = match.WinnerId == match.Player1Id
+                ? match.Player1?.LastName
+                : match.WinnerId == match.Player2Id
+                    ? match.Player2?.LastName
+                    : match.Winner?.LastName
         };
 
         var currentScore = ComputeCurrentScore(match);

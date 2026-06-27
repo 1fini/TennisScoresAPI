@@ -240,6 +240,11 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         Assert.Equal(player1, thirdSet.WinnerId);
         Assert.True(updatedMatch.IsCompleted);
         Assert.Equal(player1, updatedMatch.WinnerId);
+        Assert.NotNull(updatedMatch.EndTime);
+
+        var dto = updatedMatch.MapToFullDto();
+        Assert.Equal("Carlos", dto.WinnerFirstName);
+        Assert.Equal("Alcaraz", dto.WinnerLastName);
     }
 
     [Fact]
