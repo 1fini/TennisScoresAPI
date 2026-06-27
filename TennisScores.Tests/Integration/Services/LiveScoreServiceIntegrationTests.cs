@@ -57,7 +57,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         // Arrange
         var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
         var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
-        var matchFormat = _context.MatchFormats.Single(f => f.Id == 4);
+        var matchFormat = _context.MatchFormats.Single(f => f.Id == 2);
         var tournament = new Tournament
         {
             Name = "Third set score tournament",
@@ -100,6 +100,71 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         Assert.Equal(3, dto.Sets.Count);
         Assert.Equal("15", dto.Player1.CurrentScore);
         Assert.Equal("0", dto.Player2.CurrentScore);
+    }
+
+    [Fact]
+    public async Task AddPointToMatchAsync_FinalSetSuperTieBreak_StartsAsTieBreakAndCompletesAtTen()
+    {
+        // Arrange
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var matchFormat = _context.MatchFormats.Single(f => f.Id == 4);
+        var tournament = new Tournament
+        {
+            Name = "Final super tie-break tournament",
+            StartDate = DateTime.UtcNow.Date,
+            Location = "Test",
+            MatchFormat = matchFormat,
+            MatchFormatId = matchFormat.Id
+        };
+
+        var match = new Match
+        {
+            Player1Id = player1,
+            Player2Id = player2,
+            Sets = [],
+            Tournament = tournament,
+            TournamentId = tournament.Id
+        };
+
+        _context.Tournaments.Add(tournament);
+        _context.Matches.Add(match);
+        await _unitOfWork.SaveChangesAsync();
+
+        for (int i = 0; i < 6; i++)
+        {
+            await WinGameAsync(match.Id, player1);
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            await WinGameAsync(match.Id, player2);
+        }
+
+        // Act
+        for (int i = 0; i < 8; i++)
+        {
+            await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+            await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.Winner);
+        }
+
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+
+        // Assert
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var thirdSet = updatedMatch!.Sets.Single(s => s.SetNumber == 3);
+        var superTieBreak = thirdSet.Games.Single();
+
+        Assert.True(superTieBreak.IsTiebreak);
+        Assert.True(superTieBreak.IsCompleted);
+        Assert.Equal(1, superTieBreak.GameNumber);
+        Assert.Equal(10, superTieBreak.Points.Count(p => p.WinnerId == player1));
+        Assert.Equal(8, superTieBreak.Points.Count(p => p.WinnerId == player2));
+        Assert.True(thirdSet.IsCompleted);
+        Assert.Equal(player1, thirdSet.WinnerId);
+        Assert.True(updatedMatch.IsCompleted);
+        Assert.Equal(player1, updatedMatch.WinnerId);
     }
 
     #region Format 2

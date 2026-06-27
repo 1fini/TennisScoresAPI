@@ -72,6 +72,7 @@ public class LiveScoreService(
                     SetId = currentSet.Id,
                     Set = currentSet,
                     GameNumber = currentSet.Games.Count + 1,
+                    IsTiebreak = IsTiebreakNeeded(currentSet) || IsFinalSetSuperTieBreak(match, currentSet),
                     Points = []
                 };
 
@@ -135,7 +136,7 @@ public class LiveScoreService(
                         SetId = currentSet.Id,
                         Set = currentSet,
                         GameNumber = currentSet.Games.Count + 1,
-                        IsTiebreak = IsTiebreakNeeded(currentSet) || IsSuperTieBreak(match, currentSet)
+                        IsTiebreak = IsTiebreakNeeded(currentSet) || IsFinalSetSuperTieBreak(match, currentSet)
                     };
 
                     currentSet.Games.Add(newGame);
@@ -166,7 +167,9 @@ public class LiveScoreService(
         if (game.IsTiebreak)
         {
             //Tiebreak or super tiebreak
-            int pointsToWin = matchFormat.SuperTieBreakForFinalSet && IsSuperTieBreak(game, matchFormat) ? matchFormat.SuperTieBreakPoints : matchFormat.TieBreakPoints;
+            int pointsToWin = IsFinalSetSuperTieBreak(match, game.Set)
+                ? matchFormat.SuperTieBreakPoints
+                : matchFormat.TieBreakPoints;
             int maxPoints = Math.Max(p1Points, p2Points);
             int diff = Math.Abs(p1Points - p2Points);
 
@@ -216,7 +219,7 @@ public class LiveScoreService(
         if (matchFormat.SuperTieBreakForFinalSet && set.SetNumber == match.BestOfSets)
         {
             var lastGame = set.Games.LastOrDefault();
-            if (lastGame is not null && IsSuperTieBreak(lastGame, matchFormat))
+            if (lastGame is not null && lastGame.IsTiebreak)
             {
                 return lastGame.IsCompleted;
             }
@@ -224,11 +227,6 @@ public class LiveScoreService(
 
         // 🎯 Cas par défaut : le set continue
         return false;
-    }
-
-    private static bool IsSuperTieBreak(Game game, MatchFormat format)
-    {
-        return format.SuperTieBreakForFinalSet && game.IsTiebreak;
     }
 
     private static bool CheckMatchIsOver(Match match)
@@ -272,21 +270,14 @@ public class LiveScoreService(
     }
 
 
-    private static bool IsSuperTieBreak(Match match, TennisSet set)
+    private static bool IsFinalSetSuperTieBreak(Match match, TennisSet set)
     {
         var matchFormat = match.Tournament!.MatchFormat;
 
         if (!matchFormat.SuperTieBreakForFinalSet)
             return false;
 
-        // Est-ce le dernier set du match ?
-        var isFinalSet = set.SetNumber == match.BestOfSets;
-
-        // Est-ce qu’un jeu est en cours ET déclaré comme tie-break ?
-        var lastGame = set.Games.LastOrDefault();
-        var isTieBreakGame = lastGame != null && lastGame.IsTiebreak;
-
-        return isFinalSet && isTieBreakGame;
+        return set.SetNumber == match.BestOfSets;
     }
 
     private void SwitchServer(Match match)
