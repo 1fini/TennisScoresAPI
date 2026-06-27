@@ -167,6 +167,147 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         Assert.Equal(player1, updatedMatch.WinnerId);
     }
 
+    [Fact]
+    public async Task AddPointToMatchAsync_NonDecidingSetTieBreak_ContinuesAtSevenSixAndCompletesAtEightSix()
+    {
+        // Arrange
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var matchFormat = _context.MatchFormats.Single(f => f.Id == 1);
+        var tournament = new Tournament
+        {
+            Name = "Non deciding tie-break margin tournament",
+            StartDate = DateTime.UtcNow.Date,
+            Location = "Test",
+            MatchFormat = matchFormat,
+            MatchFormatId = matchFormat.Id
+        };
+
+        var match = new Match
+        {
+            Player1Id = player1,
+            Player2Id = player2,
+            Sets = [],
+            Tournament = tournament,
+            TournamentId = tournament.Id
+        };
+
+        _context.Tournaments.Add(tournament);
+        _context.Matches.Add(match);
+        await _unitOfWork.SaveChangesAsync();
+
+        for (int i = 0; i < 6; i++)
+        {
+            await WinGameAsync(match.Id, player1);
+            await WinGameAsync(match.Id, player2);
+        }
+
+        // Act: player 1 leads the tie-break 7-6, but only by one point.
+        await PlayPointsAsync(match.Id, player1, 6);
+        await PlayPointsAsync(match.Id, player2, 6);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+
+        // Assert: 7-6 is not enough to win a tie-break.
+        var updatedAtSevenSix = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var firstSetAtSevenSix = updatedAtSevenSix!.Sets.Single(s => s.SetNumber == 1);
+        var tieBreakAtSevenSix = firstSetAtSevenSix.Games.Single(g => g.IsTiebreak);
+
+        Assert.False(tieBreakAtSevenSix.IsCompleted);
+        Assert.False(firstSetAtSevenSix.IsCompleted);
+        Assert.False(updatedAtSevenSix.IsCompleted);
+        Assert.Equal(7, tieBreakAtSevenSix.Points.Count(p => p.WinnerId == player1));
+        Assert.Equal(6, tieBreakAtSevenSix.Points.Count(p => p.WinnerId == player2));
+
+        // Act: player 1 wins the next point, reaching 8-6.
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+
+        // Assert: 8-6 completes the tie-break and the set, but not the match.
+        var updatedAtEightSix = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var firstSetAtEightSix = updatedAtEightSix!.Sets.Single(s => s.SetNumber == 1);
+        var tieBreakAtEightSix = firstSetAtEightSix.Games.Single(g => g.IsTiebreak);
+
+        Assert.True(tieBreakAtEightSix.IsCompleted);
+        Assert.True(firstSetAtEightSix.IsCompleted);
+        Assert.Equal(player1, firstSetAtEightSix.WinnerId);
+        Assert.False(updatedAtEightSix.IsCompleted);
+        Assert.Equal(8, tieBreakAtEightSix.Points.Count(p => p.WinnerId == player1));
+        Assert.Equal(6, tieBreakAtEightSix.Points.Count(p => p.WinnerId == player2));
+    }
+
+    [Fact]
+    public async Task AddPointToMatchAsync_FinalSetSuperTieBreak_ContinuesAtTenNineAndCompletesAtElevenNine()
+    {
+        // Arrange
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var matchFormat = _context.MatchFormats.Single(f => f.Id == 4);
+        var tournament = new Tournament
+        {
+            Name = "Final super tie-break margin tournament",
+            StartDate = DateTime.UtcNow.Date,
+            Location = "Test",
+            MatchFormat = matchFormat,
+            MatchFormatId = matchFormat.Id
+        };
+
+        var match = new Match
+        {
+            Player1Id = player1,
+            Player2Id = player2,
+            Sets = [],
+            Tournament = tournament,
+            TournamentId = tournament.Id
+        };
+
+        _context.Tournaments.Add(tournament);
+        _context.Matches.Add(match);
+        await _unitOfWork.SaveChangesAsync();
+
+        for (int i = 0; i < 6; i++)
+        {
+            await WinGameAsync(match.Id, player1);
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            await WinGameAsync(match.Id, player2);
+        }
+
+        // Act: player 1 leads the super tie-break 10-9, but only by one point.
+        await PlayPointsAsync(match.Id, player1, 9);
+        await PlayPointsAsync(match.Id, player2, 9);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+
+        // Assert: 10-9 is not enough to win a super tie-break.
+        var updatedAtTenNine = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var thirdSetAtTenNine = updatedAtTenNine!.Sets.Single(s => s.SetNumber == 3);
+        var superTieBreakAtTenNine = thirdSetAtTenNine.Games.Single();
+
+        Assert.True(superTieBreakAtTenNine.IsTiebreak);
+        Assert.False(superTieBreakAtTenNine.IsCompleted);
+        Assert.False(thirdSetAtTenNine.IsCompleted);
+        Assert.False(updatedAtTenNine.IsCompleted);
+        Assert.Equal(10, superTieBreakAtTenNine.Points.Count(p => p.WinnerId == player1));
+        Assert.Equal(9, superTieBreakAtTenNine.Points.Count(p => p.WinnerId == player2));
+
+        // Act: player 1 wins the next point, reaching 11-9.
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+
+        // Assert: 11-9 completes the super tie-break, the final set, and the match.
+        var updatedAtElevenNine = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var thirdSetAtElevenNine = updatedAtElevenNine!.Sets.Single(s => s.SetNumber == 3);
+        var superTieBreakAtElevenNine = thirdSetAtElevenNine.Games.Single();
+
+        Assert.True(superTieBreakAtElevenNine.IsTiebreak);
+        Assert.True(superTieBreakAtElevenNine.IsCompleted);
+        Assert.True(thirdSetAtElevenNine.IsCompleted);
+        Assert.Equal(player1, thirdSetAtElevenNine.WinnerId);
+        Assert.True(updatedAtElevenNine.IsCompleted);
+        Assert.Equal(player1, updatedAtElevenNine.WinnerId);
+        Assert.Equal(11, superTieBreakAtElevenNine.Points.Count(p => p.WinnerId == player1));
+        Assert.Equal(9, superTieBreakAtElevenNine.Points.Count(p => p.WinnerId == player2));
+    }
+
     #region Format 2
     // Straight game win
     [Fact]
@@ -521,6 +662,14 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         for (int i = 0; i < 4; i++)
         {
             await _liveScoreService.AddPointToMatchAsync(matchId, playerId, PointType.Unknown);
+        }
+    }
+
+    private async Task PlayPointsAsync(Guid matchId, Guid playerId, int pointCount)
+    {
+        for (int i = 0; i < pointCount; i++)
+        {
+            await _liveScoreService.AddPointToMatchAsync(matchId, playerId, PointType.Winner);
         }
     }
 
