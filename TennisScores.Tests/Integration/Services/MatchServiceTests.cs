@@ -165,7 +165,7 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         // Assert
         var match = await _context.Matches.FindAsync(matchId.Id);
         Assert.NotNull(match);
-        Assert.Equal(3, match.BestOfSets);
+        Assert.Equal(5, match.BestOfSets);
 
         Assert.NotNull(player1);
         Assert.NotNull(player2);
@@ -177,6 +177,32 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         Assert.NotNull(tournament);
         Assert.Equal("US Open", tournament.Name);
         Assert.Equal(new DateTime(2025, 8, 2), tournament.StartDate);
+    }
+
+    [Fact]
+    public async Task CreateMatchAsync_ShouldDeriveBestOfSetsFromTournamentFormat()
+    {
+        // Arrange
+        var player1 = _context.Players.First(p => p.FirstName == "Carlos" && p.LastName == "Alcaraz");
+        var player2 = _context.Players.First(p => p.FirstName == "Jannik" && p.LastName == "Sinner");
+        var tournament = _context.Tournaments.First(t => t.Name == "US Open 2");
+
+        var request = new CreateMatchRequest
+        {
+            Player1Id = player1.Id,
+            Player2Id = player2.Id,
+            BestOfSets = 5,
+            TournamentId = tournament.Id,
+            ServingPlayer = player1.Id,
+        };
+
+        // Act
+        var result = await _matchService.CreateMatchAsync(request);
+
+        // Assert
+        var match = await _context.Matches.FindAsync(result.Id);
+        Assert.NotNull(match);
+        Assert.Equal(3, match.BestOfSets);
     }
 
     [Fact]
