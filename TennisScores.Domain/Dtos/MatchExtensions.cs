@@ -11,13 +11,8 @@ public static class MatchExtensions
 
         var sets = match.Sets
             .OrderBy(s => s.SetNumber)
-            .Select(set => new SetScoreDto
-            {
-                SetNumber = set.SetNumber,
-                Player1Games = set.Games.Count(g => g.WinnerId == match.Player1Id),
-                Player2Games = set.Games.Count(g => g.WinnerId == match.Player2Id),
-                IsCompleted = set.IsCompleted
-            }).ToList();
+            .Select(set => MapSetScoreDto(match, set))
+            .ToList();
 
         var currenSet = match.Sets
             .OrderByDescending(s => s.SetNumber)
@@ -35,7 +30,7 @@ public static class MatchExtensions
             Player1SetsWon = match.Sets.Count(s => s.IsCompleted &&
                 s.WinnerId == match.Player1Id),
             Player2SetsWon = match.Sets.Count(s => s.IsCompleted &&
-                s.WinnerId == match.Player1Id),
+                s.WinnerId == match.Player2Id),
             Sets = sets,
             IsMatchOver = match.IsCompleted,
             WinnerId = match.WinnerId,
@@ -85,17 +80,13 @@ public static class MatchExtensions
             WinnerLastName = winner?.LastName,
             StartTime = match.StartTime,
             EndTime = match.EndTime,
+            IsCompleted = match.IsCompleted,
+            Score = FormatMatchScore(match),
             BestOfSets = GetBestOfSets(match),
             Surface = match.Surface,
             TournamentName = match.Tournament?.Name,
             TournamentStartDate = match.Tournament?.StartDate,
-            Sets = [.. match.Sets.OrderBy(s => s.SetNumber).Select(s => new SetScoreDto
-            {
-                SetNumber = s.SetNumber,
-                Player1Games = s.Games.Count(g => g.WinnerId == match.Player1Id),
-                Player2Games = s.Games.Count(g => g.WinnerId == match.Player2Id),
-                IsCompleted = s.IsCompleted
-            })],
+            Sets = [.. match.Sets.OrderBy(s => s.SetNumber).Select(s => MapSetScoreDto(match, s))],
 
         };
 
@@ -118,6 +109,8 @@ public static class MatchExtensions
             BestOfSets = GetBestOfSets(match),
             StartTime = match.StartTime,
             EndTime = match.EndTime,
+            IsCompleted = match.IsCompleted,
+            Score = FormatMatchScore(match),
             WinnerFirstName = match.WinnerId == match.Player1Id
                 ? match.Player1?.FirstName
                 : match.WinnerId == match.Player2Id
@@ -134,6 +127,73 @@ public static class MatchExtensions
         newDto.CurrentScore = $"{currentScore["Player1"]} - {currentScore["Player2"]}";
 
         return newDto;
+    }
+
+    private static SetScoreDto MapSetScoreDto(Match match, TennisSet set)
+    {
+        var player1Games = set.Games.Count(g => g.WinnerId == match.Player1Id);
+        var player2Games = set.Games.Count(g => g.WinnerId == match.Player2Id);
+        var tieBreakGame = set.Games
+            .Where(g => g.IsTiebreak)
+            .OrderByDescending(g => g.GameNumber)
+            .FirstOrDefault();
+        var player1TieBreakPoints = tieBreakGame?.Points.Count(p => p.WinnerId == match.Player1Id);
+        var player2TieBreakPoints = tieBreakGame?.Points.Count(p => p.WinnerId == match.Player2Id);
+        var isSuperTieBreak = tieBreakGame != null && IsSuperTieBreakSet(match, set);
+
+        return new SetScoreDto
+        {
+            SetNumber = set.SetNumber,
+            Player1Games = player1Games,
+            Player2Games = player2Games,
+            IsCompleted = set.IsCompleted,
+            WinnerId = set.WinnerId,
+            IsTieBreak = tieBreakGame != null,
+            IsSuperTieBreak = isSuperTieBreak,
+            Player1TieBreakPoints = player1TieBreakPoints,
+            Player2TieBreakPoints = player2TieBreakPoints,
+            DisplayScore = FormatSetScore(
+                player1Games,
+                player2Games,
+                player1TieBreakPoints,
+                player2TieBreakPoints,
+                isSuperTieBreak)
+        };
+    }
+
+    private static string FormatMatchScore(Match match)
+    {
+        if (match.Sets == null || match.Sets.Count == 0)
+            return "0-0";
+
+        return string.Join(" ", match.Sets
+            .OrderBy(s => s.SetNumber)
+            .Select(s => MapSetScoreDto(match, s).DisplayScore)
+            .Where(score => !string.IsNullOrWhiteSpace(score)));
+    }
+
+    private static string FormatSetScore(
+        int player1Games,
+        int player2Games,
+        int? player1TieBreakPoints,
+        int? player2TieBreakPoints,
+        bool isSuperTieBreak)
+    {
+        if (isSuperTieBreak && player1TieBreakPoints.HasValue && player2TieBreakPoints.HasValue)
+            return $"{player1TieBreakPoints}-{player2TieBreakPoints}";
+
+        if (player1TieBreakPoints.HasValue &&
+            player2TieBreakPoints.HasValue &&
+            player1Games + player2Games > 0)
+        {
+            if (player1Games > player2Games)
+                return $"{player1Games}-{player2Games}({player2TieBreakPoints})";
+
+            if (player2Games > player1Games)
+                return $"{player1Games}({player1TieBreakPoints})-{player2Games}";
+        }
+
+        return $"{player1Games}-{player2Games}";
     }
 
     private static Dictionary<string, string> ComputeCurrentScore(Match match)
@@ -206,6 +266,12 @@ public static class MatchExtensions
 
     private static bool IsFinalSet(Match match, TennisSet set)
         => set.SetNumber == GetBestOfSets(match);
+
+    private static bool IsSuperTieBreakSet(Match match, TennisSet set)
+    {
+        var format = match.Tournament?.MatchFormat;
+        return format?.SuperTieBreakForFinalSet == true && IsFinalSet(match, set);
+    }
 
     private static string FormatGameScore(int pointsFor, int pointsAgainst)
     {

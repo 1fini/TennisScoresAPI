@@ -10,6 +10,8 @@ public class MatchDto
     public int BestOfSets { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
+    public bool IsCompleted { get; set; }
+    public string? Score { get; set; }
     public string? WinnerFirstName { get; set; }
     public string? WinnerLastName { get; set; }
     public string? CurrentScore { get; set; }

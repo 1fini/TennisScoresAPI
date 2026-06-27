@@ -245,6 +245,9 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         var dto = updatedMatch.MapToFullDto();
         Assert.Equal("Carlos", dto.WinnerFirstName);
         Assert.Equal("Alcaraz", dto.WinnerLastName);
+        Assert.True(dto.IsCompleted);
+        Assert.Equal("6-0 0-6 10-8", dto.Score);
+        Assert.True(dto.Sets.Single(s => s.SetNumber == 3).IsSuperTieBreak);
     }
 
     [Fact]
@@ -899,6 +902,10 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         Assert.Equal(player1, thirdSet_.WinnerId);
         Assert.True(updatedMatch!.IsCompleted, "Match should be completed");
         Assert.Equal(player1, updatedMatch.WinnerId);
+
+        var dto = updatedMatch.MapToFullDto();
+        Assert.True(dto.IsCompleted);
+        Assert.Equal("6-4 6(10)-7 7-6(0)", dto.Score);
     }
     #endregion Format 2
 
