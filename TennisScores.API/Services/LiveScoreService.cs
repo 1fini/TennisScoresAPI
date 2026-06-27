@@ -95,7 +95,7 @@ public class LiveScoreService(
                     SetId = currentSet.Id,
                     Set = currentSet,
                     GameNumber = currentSet.Games.Count + 1,
-                    IsTiebreak = IsTiebreakNeeded(currentSet) || IsFinalSetSuperTieBreak(match, currentSet)
+                    IsTiebreak = ShouldGameBeTiebreak(match, currentSet)
                 };
 
                 currentSet.Games.Add(newGame);
@@ -152,14 +152,23 @@ public class LiveScoreService(
             .FirstOrDefault(g => !g.IsCompleted);
 
         if (currentGame != null)
+        {
+            var shouldBeTiebreak = ShouldGameBeTiebreak(match, currentSet, currentGame);
+            if (currentGame.IsTiebreak != shouldBeTiebreak)
+            {
+                currentGame.IsTiebreak = shouldBeTiebreak;
+                _gameRepository.Update(currentGame);
+            }
+
             return currentGame;
+        }
 
         currentGame = new Game
         {
             SetId = currentSet.Id,
             Set = currentSet,
             GameNumber = currentSet.Games.Count + 1,
-            IsTiebreak = IsTiebreakNeeded(currentSet) || IsFinalSetSuperTieBreak(match, currentSet),
+            IsTiebreak = ShouldGameBeTiebreak(match, currentSet),
             Points = []
         };
 
@@ -269,16 +278,26 @@ public class LiveScoreService(
     private static bool IsTiebreakNeeded(TennisSet set)
     {
         var match = set.Match;
+        return ShouldGameBeTiebreak(match, set);
+    }
+
+    private static bool ShouldGameBeTiebreak(Match match, TennisSet set, Game? game = null)
+    {
         var format = match.Tournament!.MatchFormat;
 
         if (!format.TieBreakEnabled)
             return false;
 
+        if (IsFinalSetSuperTieBreak(match, set))
+            return true;
+
         var completedGames = set.Games.Where(g => g.IsCompleted).ToList();
         var player1Games = completedGames.Count(g => g.WinnerId == match.Player1Id);
         var player2Games = completedGames.Count(g => g.WinnerId == match.Player2Id);
 
-        return player1Games == format.GamesPerSet && player2Games == format.GamesPerSet;
+        return player1Games == format.GamesPerSet &&
+            player2Games == format.GamesPerSet &&
+            (game == null || game.GameNumber == completedGames.Count + 1);
     }
 
 

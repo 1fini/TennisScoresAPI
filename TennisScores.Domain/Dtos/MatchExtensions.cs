@@ -151,7 +151,7 @@ public static class MatchExtensions
         var pointsForPlayer1 = lastGame.Points.Count(p => p.WinnerId == match.Player1Id);
         var pointsForPlayer2 = lastGame.Points.Count(p => p.WinnerId == match.Player2Id);
 
-        if (lastGame.IsTiebreak)
+        if (ShouldDisplayAsTiebreak(match, lastSet, lastGame))
         {
             // Tie-break or super tie-break
             currentScore["Player1"] = pointsForPlayer1.ToString();
@@ -164,6 +164,25 @@ public static class MatchExtensions
             currentScore["Player2"] = FormatGameScore(pointsForPlayer2, pointsForPlayer1);
         }
         return currentScore;
+    }
+
+    private static bool ShouldDisplayAsTiebreak(Match match, TennisSet set, Game game)
+    {
+        var format = match.Tournament?.MatchFormat;
+        if (format == null || !format.TieBreakEnabled)
+            return false;
+
+        if (format.SuperTieBreakForFinalSet && set.SetNumber == match.BestOfSets)
+            return true;
+
+        var completedGames = set.Games.Where(g => g.IsCompleted).ToList();
+        var player1Games = completedGames.Count(g => g.WinnerId == match.Player1Id);
+        var player2Games = completedGames.Count(g => g.WinnerId == match.Player2Id);
+
+        return game.IsTiebreak &&
+            player1Games == format.GamesPerSet &&
+            player2Games == format.GamesPerSet &&
+            game.GameNumber == completedGames.Count + 1;
     }
 
     private static string FormatGameScore(int pointsFor, int pointsAgainst)

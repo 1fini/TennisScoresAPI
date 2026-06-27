@@ -103,6 +103,80 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
+    public async Task AddPointToMatchAsync_TraditionalThirdSet_RepairsInvalidTieBreakFlagAndShowsGameScore()
+    {
+        // Arrange
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var matchFormat = _context.MatchFormats.Single(f => f.Id == 1);
+        var tournament = new Tournament
+        {
+            Name = "Traditional third set tournament",
+            StartDate = DateTime.UtcNow.Date,
+            Location = "Test",
+            MatchFormat = matchFormat,
+            MatchFormatId = matchFormat.Id
+        };
+
+        var match = new Match
+        {
+            Player1Id = player1,
+            Player2Id = player2,
+            ServingPlayerId = player1,
+            Sets = [],
+            Tournament = tournament,
+            TournamentId = tournament.Id,
+            BestOfSets = 3
+        };
+
+        _context.Tournaments.Add(tournament);
+        _context.Matches.Add(match);
+        await _unitOfWork.SaveChangesAsync();
+
+        for (int i = 0; i < 6; i++)
+        {
+            await WinGameAsync(match.Id, player1);
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            await WinGameAsync(match.Id, player2);
+        }
+
+        for (int i = 0; i < 2; i++)
+        {
+            await WinGameAsync(match.Id, player1);
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            await WinGameAsync(match.Id, player2);
+        }
+
+        var matchAtTwoThree = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var thirdSet = matchAtTwoThree!.Sets.Single(s => s.SetNumber == 3);
+        var activeGame = thirdSet.Games.Single(g => !g.IsCompleted);
+        activeGame.IsTiebreak = true;
+        _gameRepository.Update(activeGame);
+        await _unitOfWork.SaveChangesAsync();
+
+        // Act
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+
+        // Assert
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var updatedThirdSet = updatedMatch!.Sets.Single(s => s.SetNumber == 3);
+        var updatedActiveGame = updatedThirdSet.Games.Single(g => !g.IsCompleted);
+        var dto = updatedMatch.MapToFullDto();
+
+        Assert.False(updatedActiveGame.IsTiebreak);
+        Assert.Equal(2, updatedThirdSet.Games.Count(g => g.IsCompleted && g.WinnerId == player1));
+        Assert.Equal(3, updatedThirdSet.Games.Count(g => g.IsCompleted && g.WinnerId == player2));
+        Assert.Equal("15", dto.Player1.CurrentScore);
+        Assert.Equal("0", dto.Player2.CurrentScore);
+    }
+
+    [Fact]
     public async Task AddPointToMatchAsync_FinalSetSuperTieBreak_StartsAsTieBreakAndCompletesAtTen()
     {
         // Arrange
