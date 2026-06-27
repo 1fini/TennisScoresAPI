@@ -38,8 +38,8 @@ public class MatchService(
         var player2 = await _playerRepository.GetByIdAsync(request.Player2Id) ?? throw new ArgumentException($"Player 2 with ID '{request.Player2Id}' not found.");
         var servingPlayer = request.ServingPlayer == player1.Id ? player1 : player2;
 
-        // Tournament
         Tournament? tournament = null;
+        var bestOfSets = request.BestOfSets;
         if (request.TournamentId != null && request.TournamentId.HasValue)
         {
             tournament = await _tournamentRepository.GetByIdAsync(request.TournamentId.Value);
@@ -48,6 +48,8 @@ public class MatchService(
             {
                 throw new ArgumentException($"Tournament with ID '{request.TournamentId}' not found.");
             }
+
+            bestOfSets = GetBestOfSetsFromFormat(tournament.MatchFormat);
         }
         else
         {
@@ -64,7 +66,7 @@ public class MatchService(
             Player2Id = player2.Id,
             ServingPlayerId = servingPlayer.Id,
             IsCompleted = false,
-            BestOfSets = request.BestOfSets,
+            BestOfSets = bestOfSets,
             StartTime = DateTime.UtcNow,
             TournamentId = tournament?.Id
         };
@@ -86,6 +88,9 @@ public class MatchService(
         };
     }
 
+    private static int GetBestOfSetsFromFormat(MatchFormat format)
+        => (format.SetsToWin * 2) - 1;
+
     public async Task<MatchDetailsDto?> GetMatchAsync(Guid matchId)
     {
         var match = await _matchRepository
@@ -101,5 +106,19 @@ public class MatchService(
         var matches = await _matchRepository.GetAllAsync();
 
         return [.. matches.Select(m => m.MapToMatchDto())];
-    } 
+    }
+
+    public async Task<bool> DeleteMatchAsync(Guid matchId)
+    {
+        var match = await _matchRepository.GetByIdAsync(matchId);
+
+        if (match == null)
+        {
+            return false;
+        }
+
+        _matchRepository.Remove(match);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
 }

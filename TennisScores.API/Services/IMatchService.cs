@@ -10,6 +10,7 @@ public interface IMatchService
     Task<MatchDto> CreateMatchAsync(CreateMatchRequest request);
     Task<MatchDetailsDto?> GetMatchAsync(Guid matchId);
     Task<List<MatchDto>> GetAllAsync();
+    Task<bool> DeleteMatchAsync(Guid matchId);
     /*
     Task<IEnumerable<MatchDto>> GetMatchesByPlayerIdAsync(Guid playerId);
     Task<IEnumerable<MatchDto>> GetMatchesByTournamentIdAsync(Guid tournamentId);

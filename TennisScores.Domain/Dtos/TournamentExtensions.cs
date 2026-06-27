@@ -4,7 +4,7 @@ namespace TennisScores.Domain.Dtos;
 
 public static class TournamentExtensions
 {
-/*     public static TournamentDto ToDto(this Tournament t)
+    public static TournamentDto ToListDto(this Tournament t)
     {
         if (t == null) return null!;
 
@@ -23,20 +23,15 @@ public static class TournamentExtensions
             AgeCategory = t.AgeCategory,
             Type = t.Type,
             MatchFormatId = t.MatchFormatId,
-            MatchFormat = t.MatchFormat == null ? null! : new MatchFormatDto
-            {
-                Id = t.MatchFormat.Id,
-                Name = t.MatchFormat.Name
-            },
+            MatchFormat = t.MatchFormat == null ? null! : t.MatchFormat.ToDto(),
             SubType = t.SubType,
             BallLevel = t.BallLevel,
             Surface = t.Surface,
             Condition = t.Condition,
             PrizeMoney = t.PrizeMoney,
-            PrizeMoneyCurrency = t.PrizeMoneyCurrency,
-            Matches = t.Matches.Select(m => m.MapToMatchDto()).ToList() ?? []
+            PrizeMoneyCurrency = t.PrizeMoneyCurrency
         };
-    } */
+    }
     
     public static TournamentDto ToDetailedDto(this Tournament t)
     {
@@ -57,11 +52,7 @@ public static class TournamentExtensions
             AgeCategory = t.AgeCategory,
             Type = t.Type,
             MatchFormatId = t.MatchFormatId,
-            MatchFormat = t.MatchFormat == null ? null! : new MatchFormatDto
-            {
-                Id = t.MatchFormat.Id,
-                Name = t.MatchFormat.Name
-            },
+            MatchFormat = t.MatchFormat == null ? null! : t.MatchFormat.ToDto(),
             SubType = t.SubType,
             BallLevel = t.BallLevel,
             Surface = t.Surface,
@@ -71,4 +62,17 @@ public static class TournamentExtensions
             Matches = t.Matches.Select(m => m.MapToFullDto()).ToList() ?? []
         };
     }
+
+    private static MatchFormatDto ToDto(this MatchFormat format)
+        => new()
+        {
+            Id = format.Id,
+            Name = format.Name,
+            SetsToWin = format.SetsToWin,
+            GamesPerSet = format.GamesPerSet,
+            TieBreakEnabled = format.TieBreakEnabled,
+            DecidingPointEnabled = format.DecidingPointEnabled,
+            SuperTieBreakForFinalSet = format.SuperTieBreakForFinalSet,
+            Application = format.Application
+        };
 }

@@ -23,6 +23,8 @@ namespace TennisScoresAPI.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(MatchDto))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateMatch([FromBody] CreateMatchRequest request)
         {
             if (!ModelState.IsValid)
@@ -50,6 +52,14 @@ namespace TennisScoresAPI.Controllers
         {
             var matches = await _matchService.GetAllAsync();
             return Ok(matches);
+        }
+
+        [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(bool))]
+        public async Task<IActionResult> DeleteMatch(Guid id)
+        {
+            var deleted = await _matchService.DeleteMatchAsync(id);
+            return Ok(deleted);
         }
     }
 }
