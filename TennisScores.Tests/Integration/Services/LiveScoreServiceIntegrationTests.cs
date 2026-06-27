@@ -7,6 +7,8 @@ using Moq;
 using Match = TennisScores.Domain.Entities.Match;
 using TennisScores.Domain.Enums;
 using TennisScores.API.Hubs;
+using TennisScores.Domain.Dtos;
+using TennisScores.Domain.Entities;
 
 namespace TennisScores.Tests.Integration.Services;
 
@@ -47,6 +49,57 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
             _gameRepository,
             _pointRepository,
             mockHubContext.Object);
+    }
+
+    [Fact]
+    public async Task AddPointToMatchAsync_ThirdSetFirstGame_MapToFullDtoShowsCurrentGameScore()
+    {
+        // Arrange
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var matchFormat = _context.MatchFormats.Single(f => f.Id == 4);
+        var tournament = new Tournament
+        {
+            Name = "Third set score tournament",
+            StartDate = DateTime.UtcNow.Date,
+            Location = "Test",
+            MatchFormat = matchFormat,
+            MatchFormatId = matchFormat.Id
+        };
+
+        var match = new Match
+        {
+            Player1Id = player1,
+            Player2Id = player2,
+            Sets = [],
+            Tournament = tournament,
+            TournamentId = tournament.Id
+        };
+
+        _context.Tournaments.Add(tournament);
+        _context.Matches.Add(match);
+        await _unitOfWork.SaveChangesAsync();
+
+        for (int i = 0; i < 6; i++)
+        {
+            await WinGameAsync(match.Id, player1);
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            await WinGameAsync(match.Id, player2);
+        }
+
+        // Act
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+
+        // Assert
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var dto = updatedMatch!.MapToFullDto();
+
+        Assert.Equal(3, dto.Sets.Count);
+        Assert.Equal("15", dto.Player1.CurrentScore);
+        Assert.Equal("0", dto.Player2.CurrentScore);
     }
 
     #region Format 2

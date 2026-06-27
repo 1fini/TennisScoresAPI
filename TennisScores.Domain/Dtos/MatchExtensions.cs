@@ -148,24 +148,18 @@ public static class MatchExtensions
             return currentScore;
         }
 
-        if (match.Tournament?.MatchFormat?.SuperTieBreakForFinalSet == true &&
-            lastSet.SetNumber == match.BestOfSets)
+        var pointsForPlayer1 = lastGame.Points.Count(p => p.WinnerId == match.Player1Id);
+        var pointsForPlayer2 = lastGame.Points.Count(p => p.WinnerId == match.Player2Id);
+
+        if (lastGame.IsTiebreak)
         {
-            // Super Tie-break
-            currentScore["Player1"] = lastGame.Player1Points.ToString();
-            currentScore["Player2"] = lastGame.Player2Points.ToString();
-        }
-        else if (lastGame.IsTiebreak)
-        {
-            // Tie-break
-            currentScore["Player1"] = lastGame.Player1Points.ToString();
-            currentScore["Player2"] = lastGame.Player2Points.ToString();
+            // Tie-break or super tie-break
+            currentScore["Player1"] = pointsForPlayer1.ToString();
+            currentScore["Player2"] = pointsForPlayer2.ToString();
         }
         else
         {
             // Jeu classique
-            var pointsForPlayer1 = lastGame.Points.Count(p => p.WinnerId == match.Player1Id);
-            var pointsForPlayer2 = lastGame.Points.Count(p => p.WinnerId == match.Player2Id);
             currentScore["Player1"] = FormatGameScore(pointsForPlayer1, pointsForPlayer2);
             currentScore["Player2"] = FormatGameScore(pointsForPlayer2, pointsForPlayer1);
         }
