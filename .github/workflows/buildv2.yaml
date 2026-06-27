@@ -31,11 +31,11 @@ jobs:
         ports:
           - 5432:5432
         env:
-          POSTGRES_USER: DB_USER
-          POSTGRES_PASSWORD: DB_PASSWORD
-          POSTGRES_DB: DB_NAME
+          POSTGRES_USER: ${{ secrets.DB_USER || 'test_user' }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD || 'test_password' }}
+          POSTGRES_DB: ${{ secrets.DB_NAME || 'test_db' }}
         options: >-
-          --health-cmd "pg_isready -U DB_USER -d DB_NAME"
+          --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -60,7 +60,7 @@ jobs:
             sleep 5
           done
         env:
-          PGPASSWORD: $DB_PASSWORD
+          PGPASSWORD: ${{ env.DB_PASSWORD }}
 
       - name: Restore dependencies
         run: dotnet restore
@@ -70,11 +70,11 @@ jobs:
 
       - name: Run tests
         env:
-          DB_PORT: DB_PORT
-          DB_NAME: DB_NAME
-          DB_USER: DB_USER
-          DB_PASSWORD: DB_PASSWORD
-          DB_HOST: DB_HOST
+          DB_PORT: ${{ env.DB_PORT }}
+          DB_NAME: ${{ env.DB_NAME }}
+          DB_USER: ${{ env.DB_USER }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+          DB_HOST: ${{ env.DB_HOST }}
         run: dotnet test --verbosity minimal
 
       - name: Build Docker image (test only)
@@ -98,8 +98,18 @@ jobs:
           username: ${{ vars.DH_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker image
-        run: docker build -t $DOCKER_IMAGE_NAME:latest .
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-      - name: Push Docker image
-        run: docker push $DOCKER_IMAGE_NAME:latest
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push multi-arch Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE_NAME }}:latest
+            ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
