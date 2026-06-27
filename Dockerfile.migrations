@@ -17,7 +17,6 @@ RUN dotnet ef migrations bundle \
     --project TennisScores.Infrastructure/TennisScores.Infrastructure.csproj \
     --startup-project TennisScores.API/TennisScores.API.csproj \
     --configuration Release \
-    --self-contained false \
     --output /app/migrate
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
