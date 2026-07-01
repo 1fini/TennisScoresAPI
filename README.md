@@ -210,7 +210,6 @@ Only the WebApp is exposed publicly. The API remains internal to Docker networki
 ## Roadmap
 
 - Extract a pure scoring engine from the application service layer.
-- Add a dedicated database migration job/container for production.
 - Add health check endpoints.
 - Harden Swagger exposure for production.
 - Add authentication for MVP users.
