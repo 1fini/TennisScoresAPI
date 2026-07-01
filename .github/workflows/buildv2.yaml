@@ -10,6 +10,7 @@ on:
 
 env:
   DOCKER_IMAGE_NAME: 1fini/tennisscoreapi
+  DOCKER_MIGRATIONS_IMAGE_NAME: 1fini/tennisscoreapi-migrations
 
   # Fallbacks pour éviter les erreurs sur PR forkées
   DB_USER: ${{ secrets.DB_USER || 'test_user' }}
@@ -108,8 +109,20 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ env.DOCKER_IMAGE_NAME }}:latest
             ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Build and push multi-arch migration image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.migrations
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.DOCKER_MIGRATIONS_IMAGE_NAME }}:latest
+            ${{ env.DOCKER_MIGRATIONS_IMAGE_NAME }}:${{ github.sha }}
