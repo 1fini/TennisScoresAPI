@@ -22,5 +22,6 @@ RUN dotnet ef migrations bundle \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/migrate ./migrate
+COPY --from=build /src/TennisScores.API/appsettings.json ./appsettings.json
 
 ENTRYPOINT ["./migrate"]
