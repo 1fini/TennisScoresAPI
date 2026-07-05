@@ -1,8 +1,29 @@
 # TennisScoresAPI
 
+[![Build, test and publish](https://github.com/1fini/TennisScoresAPI/actions/workflows/buildv2.yaml/badge.svg)](https://github.com/1fini/TennisScoresAPI/actions/workflows/buildv2.yaml)
+[![Docker image](https://img.shields.io/docker/v/1fini/tennisscoreapi/latest?label=dockerhub)](https://hub.docker.com/r/1fini/tennisscoreapi)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
+
 Backend API for live tennis scoring, tournament management, player management, and match lifecycle tracking.
 
 TennisScoresAPI powers the TennisScore MVP. It exposes REST endpoints for tournaments, players, matches, and live scoring, persists match state in PostgreSQL with Entity Framework Core, and broadcasts live match updates through SignalR.
+
+## Why This Project Exists
+
+TennisScore is an open-source live tennis scoring platform for clubs, academies, associations, and amateur tournaments. The goal is to make it simple to create tournaments, score matches courtside, and share live updates without relying on expensive or closed tournament software.
+
+This repository contains the API and domain logic. The Blazor WebApp lives in the companion repository:
+
+- https://github.com/1fini/TennisScoreWebApp
+
+## Demo
+
+The MVP is deployed at:
+
+- https://live.tennismentorsclub.fr
+
+The public demo can be protected by Basic Auth while the project is still in MVP mode. If you are interested in contributing and need access, open a GitHub issue.
 
 ## Features
 
@@ -99,6 +120,19 @@ Swagger UI is available when the API is running:
 ```text
 /swagger
 ```
+
+## Contributing
+
+Contributions are welcome. The most useful areas right now are:
+
+- tennis scoring edge cases and tests;
+- API design and OpenAPI contract improvements;
+- observability, health checks, and production hardening;
+- documentation and developer experience.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+Good first contributions are usually small tests, documentation fixes, or issues labeled `good first issue`.
 
 ## Database Migrations
 
@@ -210,6 +244,7 @@ Only the WebApp is exposed publicly. The API remains internal to Docker networki
 ## Roadmap
 
 - Extract a pure scoring engine from the application service layer.
+- Add undo support for the last scored point.
 - Add health check endpoints.
 - Harden Swagger exposure for production.
 - Add authentication for MVP users.
