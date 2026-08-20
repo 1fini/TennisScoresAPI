@@ -28,4 +28,26 @@ public class LiveScoreController : ControllerBase
 
         return Ok(new { message = "Point ajouté avec succès." });
     }
+
+    [HttpPost("{matchId:guid}/undo-last-point")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UndoLastPointAsync(Guid matchId)
+    {
+        try
+        {
+            await _liveScoringService.UndoLastPointAsync(matchId);
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (UndoNotAvailableException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+
+        return Ok(new { message = "Dernier point annulé avec succès." });
+    }
 }

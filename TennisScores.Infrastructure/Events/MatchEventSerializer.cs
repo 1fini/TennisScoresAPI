@@ -45,6 +45,7 @@ public static class MatchEventSerializer
         return matchEvent.EventType switch
         {
             "point-won" => Deserialize<PointWon>(matchEvent),
+            "point-undone" => Deserialize<PointUndone>(matchEvent),
             "game-won" => Deserialize<GameWon>(matchEvent),
             "set-won" => Deserialize<SetWon>(matchEvent),
             "match-won" => Deserialize<MatchWon>(matchEvent),
@@ -58,6 +59,7 @@ public static class MatchEventSerializer
         => domainEvent switch
         {
             PointWon => "point-won",
+            PointUndone => "point-undone",
             GameWon => "game-won",
             SetWon => "set-won",
             MatchWon => "match-won",

@@ -60,7 +60,34 @@ public class LiveScoreServicePersistenceTests
             Times.Never);
     }
 
-    private static Harness CreateHarness(bool saveFails)
+    [Fact]
+    public async Task UndoLastPointAsync_WhenPersistenceFails_DoesNotBroadcast()
+    {
+        var harness = CreateHarness(saveFails: true, withExistingPoint: true);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Service.UndoLastPointAsync(harness.Match.Id));
+
+        Assert.Equal("Persistence failed.", exception.Message);
+        Assert.Equal(new[] { "append", "save" }, harness.Timeline);
+        harness.MatchEventRepository.Verify(
+            repository => repository.AppendAsync(
+                harness.Match.Id,
+                It.Is<IReadOnlyCollection<IMatchDomainEvent>>(events =>
+                    events.Count == 1 && events.Single() is PointUndone),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        harness.ClientProxy.Verify(
+            client => client.SendCoreAsync(
+                It.IsAny<string>(),
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    private static Harness CreateHarness(
+        bool saveFails,
+        bool withExistingPoint = false)
     {
         var player1 = new Player
         {
@@ -105,6 +132,35 @@ public class LiveScoreServicePersistenceTests
             TournamentId = tournament.Id,
             Sets = []
         };
+        if (withExistingPoint)
+        {
+            var set = new TennisSet
+            {
+                MatchId = match.Id,
+                Match = match,
+                SetNumber = 1,
+                Games = []
+            };
+            var game = new Game
+            {
+                SetId = set.Id,
+                Set = set,
+                GameNumber = 1,
+                Points = []
+            };
+            var point = new Point
+            {
+                GameId = game.Id,
+                Game = game,
+                WinnerId = player1.Id,
+                Winner = player1,
+                PointType = PointType.Winner,
+                Timestamp = DateTime.UtcNow
+            };
+            game.Points.Add(point);
+            set.Games.Add(game);
+            match.Sets.Add(set);
+        }
 
         var timeline = new List<string>();
         var matchRepository = new Mock<IMatchRepository>();
