@@ -7,6 +7,7 @@ using TennisScores.Domain;
 using TennisScores.Domain.Dtos;
 using TennisScores.Domain.Entities;
 using TennisScores.Domain.Repositories;
+using TennisScores.Domain.Scoring;
 using TennisScores.Infrastructure;
 using TennisScores.Infrastructure.Data;
 using TennisScores.Infrastructure.Repositories;
@@ -34,7 +35,8 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
             playerRepository,
             tournamentRepository,
             logger,
-            unitOfWork);
+            unitOfWork,
+            new ScoringEngine());
     }
     private TennisDbContext CreateInMemoryDbContext()
     {
@@ -55,6 +57,14 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
         var result = await _matchService.GetMatchAsync(matchId);
 
         // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetAnalyticsAsync_ShouldReturnNull_WhenMatchDoesNotExist()
+    {
+        var result = await _matchService.GetAnalyticsAsync(Guid.NewGuid());
+
         result.Should().BeNull();
     }
 
@@ -127,7 +137,8 @@ public class MatchServiceTests : IClassFixture<DatabaseFixture>
             null!,
             null!,
             null!,
-            null!); // autres deps null pour ce test
+            null!,
+            new ScoringEngine()); // autres deps null pour ce test
 
         // Act
         var result = await matchService.GetMatchAsync(match.Id);

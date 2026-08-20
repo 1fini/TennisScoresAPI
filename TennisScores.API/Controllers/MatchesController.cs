@@ -46,6 +46,16 @@ namespace TennisScoresAPI.Controllers
             return match is null ? NotFound() : Ok(match);
         }
 
+        [HttpGet("{id:guid}/stats")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(MatchAnalyticsDto))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetMatchAnalytics(Guid id)
+        {
+            var analytics = await _matchService.GetAnalyticsAsync(id);
+
+            return analytics is null ? NotFound() : Ok(analytics);
+        }
+
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<MatchDto>))]
         public async Task<IActionResult> GetAllMatches()

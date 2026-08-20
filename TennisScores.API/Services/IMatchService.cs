@@ -9,6 +9,7 @@ public interface IMatchService
 {
     Task<MatchDto> CreateMatchAsync(CreateMatchRequest request);
     Task<MatchDetailsDto?> GetMatchAsync(Guid matchId);
+    Task<MatchAnalyticsDto?> GetAnalyticsAsync(Guid matchId);
     Task<List<MatchDto>> GetAllAsync();
     Task<bool> DeleteMatchAsync(Guid matchId);
     /*
