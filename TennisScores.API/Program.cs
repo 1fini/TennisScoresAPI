@@ -51,6 +51,7 @@ internal class Program
                     $"Password={builder.Configuration["DB_PASSWORD"]};"));
 
         builder.Services.AddScoped<IMatchRepository, MatchRepository>();
+        builder.Services.AddScoped<IMatchEventRepository, MatchEventRepository>();
         builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         builder.Services.AddScoped<IMatchFormatRepository, MatchFormatRepository>();
         builder.Services.AddScoped<IPlayerRepository, PlayerRepository>();

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using TennisScores.Domain.Enums;
+using TennisScores.Domain.Events;
 using TennisScores.Domain.Scoring;
 
 namespace TennisScores.Tests.Unit.Scoring;
@@ -41,6 +42,43 @@ public class ScoringEngineTests
 
         state = Award(state, Player2Id);
         Assert.Equal(Player2Id, state.ServingPlayerId);
+    }
+
+    [Fact]
+    public void Apply_GameWinningPoint_EmitsOutcomeEventsThenNextServer()
+    {
+        var state = NewState(TraditionalFormat());
+        state = AwardMany(state, Player1Id, 3);
+
+        var result = _engine.Apply(
+            state,
+            new AwardPoint(Player1Id, PointType.Winner, NextPointAt(state)));
+
+        Assert.Collection(
+            result.Events,
+            domainEvent => Assert.IsType<PointWon>(domainEvent),
+            domainEvent => Assert.IsType<GameWon>(domainEvent),
+            domainEvent => Assert.IsType<ServerChanged>(domainEvent));
+
+        var pointWon = Assert.IsType<PointWon>(result.Events[0]);
+        Assert.Equal(Player1Id, pointWon.ServingPlayerId);
+        Assert.Equal(1, pointWon.SetNumber);
+        Assert.Equal(1, pointWon.GameNumber);
+    }
+
+    [Fact]
+    public void Apply_NonCompletingPoint_EmitsOnlyPointWon()
+    {
+        var state = NewState(TraditionalFormat());
+
+        var result = _engine.Apply(
+            state,
+            new AwardPoint(Player2Id, PointType.ForcedError, FirstPointAt));
+
+        var pointWon = Assert.IsType<PointWon>(Assert.Single(result.Events));
+        Assert.Equal(Player2Id, pointWon.WinnerId);
+        Assert.Equal(Player1Id, pointWon.ServingPlayerId);
+        Assert.Equal(PointType.ForcedError, pointWon.PointType);
     }
 
     [Fact]

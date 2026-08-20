@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using TennisScores.Domain.Events;
 
 namespace TennisScores.Domain.Scoring;
 
@@ -44,7 +45,8 @@ public sealed class ScoringEngine
                 command.OccurredAt))
         };
 
-        var servingPlayerId = state.ServingPlayerId;
+        var serverBeforePoint = state.ServingPlayerId;
+        var servingPlayerId = serverBeforePoint;
         if (currentGame.IsTiebreak && currentGame.Points.Length % 2 == 1)
             servingPlayerId = OtherPlayer(state, servingPlayerId);
 
@@ -71,9 +73,10 @@ public sealed class ScoringEngine
         var matchWinnerId = state.WinnerId;
         var endTime = state.EndTime;
 
+        var setCompleted = false;
         if (gameCompleted)
         {
-            var setCompleted = IsSetOver(state, currentSet);
+            setCompleted = IsSetOver(state, currentSet);
             if (setCompleted)
             {
                 currentSet = currentSet with
@@ -115,10 +118,48 @@ public sealed class ScoringEngine
             Sets = sets
         };
 
+        var events = ImmutableArray.CreateBuilder<IMatchDomainEvent>();
+        events.Add(new PointWon(
+            command.WinnerId,
+            serverBeforePoint,
+            command.PointType,
+            currentSet.SetNumber,
+            currentGame.GameNumber,
+            command.OccurredAt));
+
+        if (gameCompleted)
+        {
+            events.Add(new GameWon(
+                command.WinnerId,
+                currentSet.SetNumber,
+                currentGame.GameNumber,
+                command.OccurredAt));
+        }
+
+        if (setCompleted)
+        {
+            events.Add(new SetWon(
+                command.WinnerId,
+                currentSet.SetNumber,
+                command.OccurredAt));
+        }
+
+        if (matchCompleted && !state.IsCompleted)
+            events.Add(new MatchWon(command.WinnerId, command.OccurredAt));
+
+        if (servingPlayerId != serverBeforePoint)
+        {
+            events.Add(new ServerChanged(
+                serverBeforePoint,
+                servingPlayerId,
+                command.OccurredAt));
+        }
+
         return new ScoringResult(
             newState,
             currentSet.SetNumber,
-            currentGame.GameNumber);
+            currentGame.GameNumber,
+            events.ToImmutable());
     }
 
     private static void Validate(ScoringState state, AwardPoint command)
