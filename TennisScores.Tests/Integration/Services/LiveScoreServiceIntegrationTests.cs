@@ -9,6 +9,7 @@ using TennisScores.Domain.Enums;
 using TennisScores.API.Hubs;
 using TennisScores.Domain.Dtos;
 using TennisScores.Domain.Entities;
+using TennisScores.Domain.Scoring;
 
 namespace TennisScores.Tests.Integration.Services;
 
@@ -17,7 +18,6 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
     private readonly TennisDbContext _context;
     private readonly LiveScoreService _liveScoreService;
     private readonly MatchRepository _matchRepository;
-    private readonly MatchFormatRepository _matchFormatRepository;
     private readonly GameRepository _gameRepository;
     private readonly PointRepository _pointRepository;
     private readonly SetRepository _setRepository;
@@ -27,7 +27,6 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
     {
         _context = fixture.Context;
         _matchRepository = new MatchRepository(_context);
-        _matchFormatRepository = new MatchFormatRepository(_context);
         _setRepository = new SetRepository(_context);
         _gameRepository = new GameRepository(_context);
         _pointRepository = new PointRepository(_context);
@@ -43,11 +42,11 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
 
         _liveScoreService = new LiveScoreService(
             _matchRepository,
-            _matchFormatRepository,
             _unitOfWork,
             _setRepository,
             _gameRepository,
             _pointRepository,
+            new ScoringEngine(),
             mockHubContext.Object);
     }
 
