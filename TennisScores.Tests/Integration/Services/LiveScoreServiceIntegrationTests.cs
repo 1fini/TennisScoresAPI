@@ -3,6 +3,7 @@ using TennisScores.Infrastructure.Repositories;
 using TennisScores.Infrastructure;
 using TennisScores.Infrastructure.Data;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Match = TennisScores.Domain.Entities.Match;
 using TennisScores.Domain.Enums;
@@ -19,6 +20,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
 {
     private readonly TennisDbContext _context;
     private readonly LiveScoreService _liveScoreService;
+    private readonly MatchService _matchService;
     private readonly MatchRepository _matchRepository;
     private readonly GameRepository _gameRepository;
     private readonly PointRepository _pointRepository;
@@ -53,6 +55,13 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
             _matchEventRepository,
             new ScoringEngine(),
             mockHubContext.Object);
+        _matchService = new MatchService(
+            _matchRepository,
+            null!,
+            null!,
+            NullLogger<MatchService>.Instance,
+            _unitOfWork,
+            new ScoringEngine());
     }
 
     [Fact]
@@ -749,6 +758,111 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
+    public async Task GetAnalyticsAsync_InProgressMatch_UsesWinnerAndErrorSemantics()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var match = await CreateMatchAsync(
+            formatId: 5,
+            tournamentName: "In-progress analytics tournament",
+            servingPlayerId: player1);
+
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Ace);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.Winner);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.UnforcedError);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.ForcedError);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.DoubleFault);
+
+        var analytics = await _matchService.GetAnalyticsAsync(match.Id);
+
+        Assert.NotNull(analytics);
+        Assert.False(analytics.IsCompleted);
+        Assert.True(analytics.ServiceContextAvailable);
+        Assert.Equal(2, analytics.Player1.TotalPointsWon);
+        Assert.Equal(1, analytics.Player1.Aces);
+        Assert.Equal(1, analytics.Player1.DoubleFaults);
+        Assert.Equal(0, analytics.Player1.UnforcedErrors);
+        Assert.Equal(1, analytics.Player1.ForcedErrors);
+        Assert.Equal(5, analytics.Player1.PointsServed);
+        Assert.Equal(0, analytics.Player1.PointsReturned);
+        Assert.Equal(3, analytics.Player2.TotalPointsWon);
+        Assert.Equal(1, analytics.Player2.Winners);
+        Assert.Equal(1, analytics.Player2.UnforcedErrors);
+        Assert.Equal(0, analytics.Player2.ForcedErrors);
+        Assert.Equal(0, analytics.Player2.PointsServed);
+        Assert.Equal(5, analytics.Player2.PointsReturned);
+    }
+
+    [Fact]
+    public async Task GetAnalyticsAsync_CompletedMatch_ReturnsBothPlayerSides()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var match = await CreateMatchAsync(
+            formatId: 5,
+            tournamentName: "Completed analytics tournament",
+            servingPlayerId: player1);
+        await WinSetAsync(match.Id, player1, gamesToWin: 3, PointType.Winner);
+        await WinSetAsync(match.Id, player1, gamesToWin: 3, PointType.Winner);
+
+        var analytics = await _matchService.GetAnalyticsAsync(match.Id);
+
+        Assert.NotNull(analytics);
+        Assert.True(analytics.IsCompleted);
+        Assert.True(analytics.ServiceContextAvailable);
+        Assert.Equal(24, analytics.Player1.TotalPointsWon);
+        Assert.Equal(24, analytics.Player1.Winners);
+        Assert.Equal(12, analytics.Player1.PointsServed);
+        Assert.Equal(12, analytics.Player1.PointsReturned);
+        Assert.Equal(0, analytics.Player2.TotalPointsWon);
+        Assert.Equal(12, analytics.Player2.PointsServed);
+        Assert.Equal(12, analytics.Player2.PointsReturned);
+    }
+
+    [Fact]
+    public async Task GetAnalyticsAsync_AfterUndo_ExcludesUndonePoint()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var match = await CreateMatchAsync(
+            formatId: 5,
+            tournamentName: "Undo analytics tournament",
+            servingPlayerId: player1);
+        await PlayPointsAsync(match.Id, player1, 3);
+        await _liveScoreService.UndoLastPointAsync(match.Id);
+
+        var analytics = await _matchService.GetAnalyticsAsync(match.Id);
+
+        Assert.NotNull(analytics);
+        Assert.Equal(2, analytics.Player1.TotalPointsWon);
+        Assert.Equal(2, analytics.Player1.Winners);
+        Assert.Equal(2, analytics.Player1.PointsServed);
+    }
+
+    [Fact]
+    public async Task GetAnalyticsAsync_InconsistentServer_MarksServiceMetricsUnavailable()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var match = await CreateMatchAsync(
+            formatId: 5,
+            tournamentName: "Unavailable service analytics tournament",
+            servingPlayerId: player1);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Ace);
+        var persistedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        persistedMatch!.ServingPlayerId = Guid.NewGuid();
+        await _unitOfWork.SaveChangesAsync();
+
+        var analytics = await _matchService.GetAnalyticsAsync(match.Id);
+
+        Assert.NotNull(analytics);
+        Assert.False(analytics.ServiceContextAvailable);
+        Assert.Null(analytics.Player1.PointsServed);
+        Assert.Null(analytics.Player1.PointsReturned);
+        Assert.Null(analytics.Player2.PointsServed);
+        Assert.Null(analytics.Player2.PointsReturned);
+        Assert.Equal(1, analytics.Player1.TotalPointsWon);
+        Assert.Equal(1, analytics.Player1.Aces);
+    }
+
+    [Fact]
     public async Task AddPointToMatchAsync_AdvantageGame_PreservesDeuceAndAdvantageScoreTransitions()
     {
         var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
@@ -1244,18 +1358,25 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
     }
     #endregion Format 2
 
-    private async Task WinGameAsync(Guid matchId, Guid playerId)
+    private async Task WinGameAsync(
+        Guid matchId,
+        Guid playerId,
+        PointType pointType = PointType.Unknown)
     {
         for (int i = 0; i < 4; i++)
         {
-            await _liveScoreService.AddPointToMatchAsync(matchId, playerId, PointType.Unknown);
+            await _liveScoreService.AddPointToMatchAsync(matchId, playerId, pointType);
         }
     }
 
-    private async Task WinSetAsync(Guid matchId, Guid playerId, int gamesToWin)
+    private async Task WinSetAsync(
+        Guid matchId,
+        Guid playerId,
+        int gamesToWin,
+        PointType pointType = PointType.Unknown)
     {
         for (var game = 0; game < gamesToWin; game++)
-            await WinGameAsync(matchId, playerId);
+            await WinGameAsync(matchId, playerId, pointType);
     }
 
     private async Task PlayPointsAsync(Guid matchId, Guid playerId, int pointCount)
