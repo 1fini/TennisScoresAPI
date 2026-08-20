@@ -15,6 +15,15 @@ public sealed record PointWon(
     int GameNumber,
     DateTime OccurredAt) : IMatchDomainEvent;
 
+public sealed record PointUndone(
+    Guid PointId,
+    Guid WinnerId,
+    PointType PointType,
+    int SetNumber,
+    int GameNumber,
+    DateTime OriginalOccurredAt,
+    DateTime OccurredAt) : IMatchDomainEvent;
+
 public sealed record GameWon(
     Guid WinnerId,
     int SetNumber,

@@ -29,6 +29,11 @@ public class GameRepository(TennisDbContext context) : IGameRepository
         await _context.Games.AddAsync(game);
     }
 
+    public void Remove(Game game)
+    {
+        _context.Games.Remove(game);
+    }
+
     public void Update(Game game)
     {
         _context.Games.Update(game);

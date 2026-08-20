@@ -11,6 +11,7 @@ public interface ILiveScoreService
     //Task<LiveScoreDto?> GetLiveScoreAsync(Guid matchId);
     //Task<LiveScoreDto?> PointWonAsync(Guid matchId, Guid playerId);
     Task AddPointToMatchAsync(Guid matchId, Guid winnerId, PointType pointType);
+    Task UndoLastPointAsync(Guid matchId);
     /*Task<LiveScoreDto?> StartMatchAsync(Guid matchId, Guid player1Id, Guid player2Id);
     Task<LiveScoreDto?> StartSetAsync(Guid matchId, Guid player1Id, Guid player2Id);
     Task<LiveScoreDto?> StartGameAsync(Guid matchId, Guid player1Id, Guid player2Id);

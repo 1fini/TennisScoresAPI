@@ -9,7 +9,9 @@ using TennisScores.Domain.Enums;
 using TennisScores.API.Hubs;
 using TennisScores.Domain.Dtos;
 using TennisScores.Domain.Entities;
+using TennisScores.Domain.Events;
 using TennisScores.Domain.Scoring;
+using TennisScores.Infrastructure.Events;
 
 namespace TennisScores.Tests.Integration.Services;
 
@@ -618,6 +620,135 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
+    public async Task UndoLastPointAsync_RegularPoint_RemovesPointAndAppendsAuditEvent()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var match = await CreateMatchAsync(
+            formatId: 5,
+            tournamentName: "Undo regular point tournament",
+            servingPlayerId: player1);
+        await _liveScoreService.AddPointToMatchAsync(
+            match.Id,
+            player1,
+            PointType.Ace);
+        var pointId = (await _matchRepository.GetFullMatchByIdAsync(match.Id))!
+            .Sets.Single().Games.Single().Points.Single().Id;
+
+        await _liveScoreService.UndoLastPointAsync(match.Id);
+
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var events = await _matchEventRepository.GetByMatchIdAsync(match.Id);
+        var auditEvent = Assert.IsType<PointUndone>(
+            MatchEventSerializer.Deserialize(events[^1]));
+        Assert.Empty(updatedMatch!.Sets);
+        Assert.False(updatedMatch.IsCompleted);
+        Assert.Null(updatedMatch.WinnerId);
+        Assert.Equal(player1, updatedMatch.ServingPlayerId);
+        Assert.Equal(pointId, auditEvent.PointId);
+        Assert.Equal(PointType.Ace, auditEvent.PointType);
+        Assert.Equal("point-undone", events[^1].EventType);
+        Assert.Contains(events, matchEvent => matchEvent.EventType == "point-won");
+    }
+
+    [Fact]
+    public async Task UndoLastPointAsync_GameWinningPoint_ReopensGameAndRestoresServer()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var match = await CreateMatchAsync(
+            formatId: 5,
+            tournamentName: "Undo game boundary tournament",
+            servingPlayerId: player1);
+        await WinGameAsync(match.Id, player1);
+
+        await _liveScoreService.UndoLastPointAsync(match.Id);
+
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var game = updatedMatch!.Sets.Single().Games.Single();
+        Assert.False(game.IsCompleted);
+        Assert.Null(game.WinnerId);
+        Assert.Equal(3, game.Points.Count);
+        Assert.Equal(player1, updatedMatch.ServingPlayerId);
+    }
+
+    [Fact]
+    public async Task UndoLastPointAsync_SetWinningPoint_ReopensSetAndRemovesNextSet()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var match = await CreateMatchAsync(
+            formatId: 5,
+            tournamentName: "Undo set boundary tournament",
+            servingPlayerId: player1);
+        await WinSetAsync(match.Id, player1, gamesToWin: 3);
+
+        await _liveScoreService.UndoLastPointAsync(match.Id);
+
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var set = updatedMatch!.Sets.Single();
+        Assert.False(set.IsCompleted);
+        Assert.Null(set.WinnerId);
+        Assert.Equal(3, set.Games.Count);
+        Assert.False(set.Games.Single(game => game.GameNumber == 3).IsCompleted);
+        Assert.Equal(3, set.Games.Single(game => game.GameNumber == 3).Points.Count);
+    }
+
+    [Fact]
+    public async Task UndoLastPointAsync_TieBreakWinningPoint_ReopensTieBreak()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var match = await CreateMatchAsync(
+            formatId: 5,
+            tournamentName: "Undo tiebreak tournament",
+            servingPlayerId: player1);
+        for (var game = 0; game < 3; game++)
+        {
+            await WinGameAsync(match.Id, player1);
+            await WinGameAsync(match.Id, player2);
+        }
+        await PlayPointsAsync(match.Id, player1, 7);
+
+        await _liveScoreService.UndoLastPointAsync(match.Id);
+
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var set = updatedMatch!.Sets.Single();
+        var tieBreak = set.Games.Single(game => game.IsTiebreak);
+        Assert.False(set.IsCompleted);
+        Assert.False(tieBreak.IsCompleted);
+        Assert.Null(tieBreak.WinnerId);
+        Assert.Equal(6, tieBreak.Points.Count);
+    }
+
+    [Fact]
+    public async Task UndoLastPointAsync_SuperTieBreakMatchPoint_ReopensMatch()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var match = await CreateMatchAsync(
+            formatId: 5,
+            tournamentName: "Undo match boundary tournament",
+            servingPlayerId: player1);
+        await WinSetAsync(match.Id, player1, gamesToWin: 3);
+        await WinSetAsync(match.Id, player2, gamesToWin: 3);
+        await PlayPointsAsync(match.Id, player1, 10);
+
+        await _liveScoreService.UndoLastPointAsync(match.Id);
+
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var finalSet = updatedMatch!.Sets.Single(set => set.SetNumber == 3);
+        var superTieBreak = finalSet.Games.Single();
+        var events = await _matchEventRepository.GetByMatchIdAsync(match.Id);
+        Assert.False(updatedMatch.IsCompleted);
+        Assert.Null(updatedMatch.WinnerId);
+        Assert.Null(updatedMatch.EndTime);
+        Assert.False(finalSet.IsCompleted);
+        Assert.True(superTieBreak.IsTiebreak);
+        Assert.False(superTieBreak.IsCompleted);
+        Assert.Equal(9, superTieBreak.Points.Count);
+        Assert.Contains(events, matchEvent => matchEvent.EventType == "match-won");
+        Assert.Equal("point-undone", events[^1].EventType);
+    }
+
+    [Fact]
     public async Task AddPointToMatchAsync_AdvantageGame_PreservesDeuceAndAdvantageScoreTransitions()
     {
         var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
@@ -1119,6 +1250,12 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         {
             await _liveScoreService.AddPointToMatchAsync(matchId, playerId, PointType.Unknown);
         }
+    }
+
+    private async Task WinSetAsync(Guid matchId, Guid playerId, int gamesToWin)
+    {
+        for (var game = 0; game < gamesToWin; game++)
+            await WinGameAsync(matchId, playerId);
     }
 
     private async Task PlayPointsAsync(Guid matchId, Guid playerId, int pointCount)
