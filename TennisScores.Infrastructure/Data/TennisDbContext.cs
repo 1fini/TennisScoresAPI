@@ -15,6 +15,7 @@ public class TennisDbContext : DbContext
     public DbSet<Point> Points => Set<Point>();
     public DbSet<Tournament> Tournaments => Set<Tournament>();
     public DbSet<MatchFormat> MatchFormats => Set<MatchFormat>();
+    public DbSet<MatchEvent> MatchEvents => Set<MatchEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -107,5 +108,6 @@ public class TennisDbContext : DbContext
         .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.ApplyConfiguration(new MatchFormatConfiguration());
+        modelBuilder.ApplyConfiguration(new MatchEventConfiguration());
     }
 }

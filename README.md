@@ -152,6 +152,11 @@ dotnet ef database update \
 
 Make sure the `DB_*` environment variables are set before running migrations.
 
+The additive match-event journal and its compatibility rules are documented in
+[`docs/match-event-journal.md`](docs/match-event-journal.md). Do not apply its
+migration to the Raspberry Pi production database until the real PostgreSQL
+backup and restore procedure has been validated end to end.
+
 ## API Surface
 
 Primary endpoints:

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using TennisScores.Domain.Enums;
+using TennisScores.Domain.Events;
 
 namespace TennisScores.Domain.Scoring;
 
@@ -51,4 +52,5 @@ public sealed record AwardPoint(
 public sealed record ScoringResult(
     ScoringState State,
     int AppliedSetNumber,
-    int AppliedGameNumber);
+    int AppliedGameNumber,
+    ImmutableArray<IMatchDomainEvent> Events);
