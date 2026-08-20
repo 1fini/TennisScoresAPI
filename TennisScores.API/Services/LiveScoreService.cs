@@ -15,6 +15,7 @@ public class LiveScoreService(
     ISetRepository setRepository,
     IGameRepository gameRepository,
     IPointRepository pointRepository,
+    IMatchEventRepository matchEventRepository,
     ScoringEngine scoringEngine,
     IHubContext<ScoreHub> hubContext) : ILiveScoreService
 {
@@ -23,6 +24,7 @@ public class LiveScoreService(
     private readonly ISetRepository _setRepository = setRepository;
     private readonly IGameRepository _gameRepository = gameRepository;
     private readonly IPointRepository _pointRepository = pointRepository;
+    private readonly IMatchEventRepository _matchEventRepository = matchEventRepository;
     private readonly ScoringEngine _scoringEngine = scoringEngine;
     private readonly IHubContext<ScoreHub> _hubContext = hubContext;
 
@@ -39,6 +41,7 @@ public class LiveScoreService(
             new AwardPoint(winnerId, pointType, occurredAt));
 
         await ApplyProjectionAsync(match, result, pointType, occurredAt);
+        await _matchEventRepository.AppendAsync(match.Id, result.Events);
         await _unitOfWork.SaveChangesAsync();
         await _hubContext.BroadcastPoint(match.MapToFullDto());
     }

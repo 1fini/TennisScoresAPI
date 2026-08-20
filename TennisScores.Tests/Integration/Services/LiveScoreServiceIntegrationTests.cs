@@ -20,6 +20,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
     private readonly MatchRepository _matchRepository;
     private readonly GameRepository _gameRepository;
     private readonly PointRepository _pointRepository;
+    private readonly MatchEventRepository _matchEventRepository;
     private readonly SetRepository _setRepository;
     private readonly UnitOfWork _unitOfWork;
 
@@ -30,6 +31,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         _setRepository = new SetRepository(_context);
         _gameRepository = new GameRepository(_context);
         _pointRepository = new PointRepository(_context);
+        _matchEventRepository = new MatchEventRepository(_context);
         _unitOfWork = new UnitOfWork(_context);
 
         var mockClients = new Mock<IHubClients>();
@@ -46,6 +48,7 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
             _setRepository,
             _gameRepository,
             _pointRepository,
+            _matchEventRepository,
             new ScoringEngine(),
             mockHubContext.Object);
     }
@@ -580,6 +583,38 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         Assert.Equal(3, completedGame.Points.Count(p => p.WinnerId == player1));
         Assert.Equal(4, completedGame.Points.Count(p => p.WinnerId == player2));
         Assert.Single(updatedMatch.Sets.Single().Games, g => !g.IsCompleted);
+    }
+
+    [Fact]
+    public async Task AddPointToMatchAsync_GameWinningPoint_PersistsOrderedJournalWithProjection()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var match = await CreateMatchAsync(
+            formatId: 2,
+            tournamentName: "Atomic journal characterization tournament",
+            servingPlayerId: player1);
+
+        await WinGameAsync(match.Id, player1);
+
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var matchEvents = await _matchEventRepository.GetByMatchIdAsync(match.Id);
+
+        Assert.Equal(4, updatedMatch!.Sets.Single().Games
+            .Single(game => game.GameNumber == 1).Points.Count);
+        Assert.Equal(
+            new[]
+            {
+                "point-won",
+                "point-won",
+                "point-won",
+                "point-won",
+                "game-won",
+                "server-changed"
+            },
+            matchEvents.Select(matchEvent => matchEvent.EventType));
+        Assert.Equal(
+            Enumerable.Range(1, matchEvents.Count).Select(sequence => (long)sequence),
+            matchEvents.Select(matchEvent => matchEvent.Sequence));
     }
 
     [Fact]
