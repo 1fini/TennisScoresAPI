@@ -3,6 +3,7 @@ using TennisScores.API.Hubs;
 using TennisScores.API.Services;
 using TennisScores.Domain;
 using TennisScores.Domain.Repositories;
+using TennisScores.Domain.Scoring;
 using TennisScores.Infrastructure;
 using TennisScores.Infrastructure.Data;
 using TennisScores.Infrastructure.Repositories;
@@ -65,6 +66,7 @@ internal class Program
         builder.Services.AddScoped<ILiveScoreService, LiveScoreService>();
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
         builder.Services.AddScoped<LiveScoreService>();
+        builder.Services.AddSingleton<ScoringEngine>();
 
 
 
