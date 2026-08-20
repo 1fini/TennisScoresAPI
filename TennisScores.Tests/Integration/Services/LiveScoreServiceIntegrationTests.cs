@@ -556,6 +556,176 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         Assert.Equal(player1, afterThirdPoint!.ServingPlayerId);
     }
 
+    [Fact]
+    public async Task AddPointToMatchAsync_DecidingPointAtDeuce_CompletesNoAdGameOnNextPoint()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var match = await CreateMatchAsync(
+            formatId: 4,
+            tournamentName: "No-ad characterization tournament",
+            servingPlayerId: player1);
+
+        for (var i = 0; i < 3; i++)
+        {
+            await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+            await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.Winner);
+        }
+
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.Winner);
+
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var completedGame = updatedMatch!.Sets.Single().Games.Single(g => g.IsCompleted);
+
+        Assert.Equal(player2, completedGame.WinnerId);
+        Assert.Equal(3, completedGame.Points.Count(p => p.WinnerId == player1));
+        Assert.Equal(4, completedGame.Points.Count(p => p.WinnerId == player2));
+        Assert.Single(updatedMatch.Sets.Single().Games, g => !g.IsCompleted);
+    }
+
+    [Fact]
+    public async Task AddPointToMatchAsync_AdvantageGame_PreservesDeuceAndAdvantageScoreTransitions()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var match = await CreateMatchAsync(
+            formatId: 2,
+            tournamentName: "Advantage score characterization tournament",
+            servingPlayerId: player1);
+
+        for (var i = 0; i < 3; i++)
+        {
+            await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+            await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.Winner);
+        }
+
+        var atDeuce = (await _matchRepository.GetFullMatchByIdAsync(match.Id))!.MapToFullDto();
+        Assert.Equal("40", atDeuce.Player1.CurrentScore);
+        Assert.Equal("40", atDeuce.Player2.CurrentScore);
+
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+        var atPlayer1Advantage = (await _matchRepository.GetFullMatchByIdAsync(match.Id))!.MapToFullDto();
+        Assert.Equal("AD", atPlayer1Advantage.Player1.CurrentScore);
+        Assert.Equal("40", atPlayer1Advantage.Player2.CurrentScore);
+
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.Winner);
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player2, PointType.Winner);
+        var atPlayer2Advantage = (await _matchRepository.GetFullMatchByIdAsync(match.Id))!;
+        var atPlayer2AdvantageDto = atPlayer2Advantage.MapToFullDto();
+
+        Assert.Equal("40", atPlayer2AdvantageDto.Player1.CurrentScore);
+        Assert.Equal("AD", atPlayer2AdvantageDto.Player2.CurrentScore);
+        Assert.False(atPlayer2Advantage.Sets.Single().Games.Single().IsCompleted);
+    }
+
+    [Fact]
+    public async Task AddPointToMatchAsync_NormalGameCompletion_SwitchesServerExactlyOnce()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var match = await CreateMatchAsync(
+            formatId: 2,
+            tournamentName: "Normal game server characterization tournament",
+            servingPlayerId: player1);
+
+        await WinGameAsync(match.Id, player1);
+        var afterGame = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        Assert.Equal(player2, afterGame!.ServingPlayerId);
+
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+        var afterNextGameStarts = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+
+        Assert.Equal(player2, afterNextGameStarts!.ServingPlayerId);
+        Assert.Equal(2, afterNextGameStarts.Sets.Single().Games.Count);
+    }
+
+    [Fact]
+    public async Task AddPointToMatchAsync_AcrossSetBoundary_PreservesServerFromCompletedGameRotation()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var match = await CreateMatchAsync(
+            formatId: 2,
+            tournamentName: "Set boundary server characterization tournament",
+            servingPlayerId: player1);
+
+        for (var i = 0; i < 6; i++)
+            await WinGameAsync(match.Id, player1);
+
+        var afterSet = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        Assert.True(afterSet!.Sets.Single(s => s.SetNumber == 1).IsCompleted);
+        Assert.Equal(player1, afterSet.ServingPlayerId);
+
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+        var afterNextSetStarts = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+
+        Assert.Equal(player1, afterNextSetStarts!.ServingPlayerId);
+        Assert.Single(afterNextSetStarts.Sets.Single(s => s.SetNumber == 2).Games);
+    }
+
+    [Fact]
+    public async Task AddPointToMatchAsync_FinalSetWithoutSuperTieBreak_UsesRegularTieBreakAtSixAll()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var match = await CreateMatchAsync(
+            formatId: 2,
+            tournamentName: "Traditional final set characterization tournament",
+            servingPlayerId: player1);
+
+        for (var i = 0; i < 6; i++)
+            await WinGameAsync(match.Id, player1);
+        for (var i = 0; i < 6; i++)
+            await WinGameAsync(match.Id, player2);
+        for (var i = 0; i < 6; i++)
+        {
+            await WinGameAsync(match.Id, player1);
+            await WinGameAsync(match.Id, player2);
+        }
+
+        await _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner);
+
+        var updatedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var finalSet = updatedMatch!.Sets.Single(s => s.SetNumber == 3);
+        var tieBreak = finalSet.Games.Single(g => !g.IsCompleted);
+        var dto = updatedMatch.MapToFullDto();
+
+        Assert.True(tieBreak.IsTiebreak);
+        Assert.Equal(13, tieBreak.GameNumber);
+        Assert.False(dto.Sets.Single(s => s.SetNumber == 3).IsSuperTieBreak);
+        Assert.Equal("1", dto.Player1.CurrentScore);
+        Assert.Equal("0", dto.Player2.CurrentScore);
+    }
+
+    [Fact]
+    public async Task AddPointToMatchAsync_AfterScoredMatchCompletion_DoesNotCreateExtraSetGameOrPoint()
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var match = await CreateMatchAsync(
+            formatId: 2,
+            tournamentName: "Completed match immutability characterization tournament",
+            servingPlayerId: player1);
+
+        for (var set = 0; set < 2; set++)
+        {
+            for (var game = 0; game < 6; game++)
+                await WinGameAsync(match.Id, player1);
+        }
+
+        var completedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        var setCount = completedMatch!.Sets.Count;
+        var gameCount = completedMatch.Sets.Sum(s => s.Games.Count);
+        var pointCount = completedMatch.Sets.Sum(s => s.Games.Sum(g => g.Points.Count));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _liveScoreService.AddPointToMatchAsync(match.Id, player1, PointType.Winner));
+
+        var unchangedMatch = await _matchRepository.GetFullMatchByIdAsync(match.Id);
+        Assert.True(unchangedMatch!.IsCompleted);
+        Assert.Equal(setCount, unchangedMatch.Sets.Count);
+        Assert.Equal(gameCount, unchangedMatch.Sets.Sum(s => s.Games.Count));
+        Assert.Equal(pointCount, unchangedMatch.Sets.Sum(s => s.Games.Sum(g => g.Points.Count)));
+    }
+
     #region Format 2
     // Straight game win
     [Fact]
@@ -923,6 +1093,39 @@ public class LiveScoreServiceIntegrationTests : IClassFixture<DatabaseFixture>
         {
             await _liveScoreService.AddPointToMatchAsync(matchId, playerId, PointType.Winner);
         }
+    }
+
+    private async Task<Match> CreateMatchAsync(
+        int formatId,
+        string tournamentName,
+        Guid servingPlayerId)
+    {
+        var player1 = _context.Players.Single(p => p.FirstName == "Carlos").Id;
+        var player2 = _context.Players.Single(p => p.FirstName == "Jannik").Id;
+        var matchFormat = _context.MatchFormats.Single(f => f.Id == formatId);
+        var tournament = new Tournament
+        {
+            Name = tournamentName,
+            StartDate = DateTime.UtcNow.Date,
+            Location = "Test",
+            MatchFormat = matchFormat,
+            MatchFormatId = matchFormat.Id
+        };
+        var match = new Match
+        {
+            Player1Id = player1,
+            Player2Id = player2,
+            ServingPlayerId = servingPlayerId,
+            Sets = [],
+            Tournament = tournament,
+            TournamentId = tournament.Id
+        };
+
+        _context.Tournaments.Add(tournament);
+        _context.Matches.Add(match);
+        await _unitOfWork.SaveChangesAsync();
+
+        return match;
     }
 
 }
