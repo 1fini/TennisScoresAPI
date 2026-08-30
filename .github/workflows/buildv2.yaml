@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: write # needed for docker/build-push-action GitHub Actions cache (type=gha)
 
 env:
   DOCKER_IMAGE_NAME: 1fini/tennisscoreapi
