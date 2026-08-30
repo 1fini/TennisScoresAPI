@@ -10,10 +10,17 @@ on:
 
 permissions:
   contents: read
+  actions: write # needed for docker/build-push-action GitHub Actions cache (type=gha)
 
 env:
   DOCKER_IMAGE_NAME: 1fini/tennisscoreapi
   DOCKER_MIGRATIONS_IMAGE_NAME: 1fini/tennisscoreapi-migrations
+
+  # The docker/build-push-action uploads a ~{ref}.dockerbuild build-record
+  # artifact per run. Cap its retention so these transient records expire
+  # quickly instead of accumulating on Actions storage (see storage-hygiene
+  # mission 1fini/digital-assets-lab#83).
+  DOCKER_BUILD_RECORD_RETENTION_DAYS: 1
 
   # Fallbacks pour éviter les erreurs sur PR forkées
   DB_USER: ${{ secrets.DB_USER || 'test_user' }}
@@ -115,6 +122,8 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.DOCKER_IMAGE_NAME }}:latest
             ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
@@ -126,6 +135,8 @@ jobs:
           file: ./Dockerfile.migrations
           platforms: linux/amd64,linux/arm64
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.DOCKER_MIGRATIONS_IMAGE_NAME }}:latest
             ${{ env.DOCKER_MIGRATIONS_IMAGE_NAME }}:${{ github.sha }}
